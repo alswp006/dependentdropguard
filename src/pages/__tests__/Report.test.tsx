@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import React from "react";
-import { screen, fireEvent, within } from "@testing-library/react";
+import { screen, fireEvent, within, act } from "@testing-library/react";
 import { mockTds, mockAppsInToss, mockNavigate } from "@/__tests__/__helpers__/mocks";
 import { renderWithProviders } from "@/test/renderWithProviders";
 import { getReportUnlock } from "@/storage/reportUnlock";
@@ -29,9 +29,16 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => navSpy };
 });
 
-vi.mock("@/pages/ReportUnlockManager", () => ({
-  ReportUnlockManager: ({ children }: { children: React.ReactNode }) => children,
-}));
+// gate.real=false: 항상 잠금 해제 스텁 / true: 실제 ReportUnlockManager(광고 SDK는 mockAppsInToss가 loaded→rewarded 자동 발화)
+const gate = vi.hoisted(() => ({ real: false }));
+
+vi.mock("@/pages/ReportUnlockManager", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/pages/ReportUnlockManager")>();
+  return {
+    ReportUnlockManager: (props: { statusLabel: string; children?: React.ReactNode }) =>
+      gate.real ? React.createElement(actual.ReportUnlockManager, props) : props.children,
+  };
+});
 
 const NOW = new Date("2026-09-14T12:00:00");
 const PROFILE_KEY = "ddg:profile:v1";
@@ -165,5 +172,51 @@ describe("ReportPage(UI) — 렌더링·연도 상태·빈 상태·본문·탭 (
 
     expect(mockNavigate).toHaveBeenCalledWith("/simulate", { state: { year: 2026 } });
     expect(getReportUnlock()).toBeNull();
+  });
+});
+
+describe("ReportPage — 보상형 광고 게이트를 거쳐 상세 리포트가 열린다 (/report)", () => {
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    gate.real = true;
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-14T09:00:00+09:00"));
+    errorSpy = vi.spyOn(console, "error");
+  });
+
+  afterEach(() => {
+    gate.real = false;
+    errorSpy.mockRestore();
+  });
+
+  it("프로필·월 기록이 있으면 에러 없이 마운트되고, 광고 시청(rewarded) 후 상세 값이 보인다", async () => {
+    seedProfile({ hasBusinessRegistration: false });
+    seedRecords([makeRecord("2026-01", 1_500_000, 200_000)]);
+
+    await renderReport();
+
+    // 잠금 상태: 게이트 카드만 있고 상세 카드는 아직 없다
+    expect(screen.getByTestId("report-gate")).toBeInTheDocument();
+    expect(screen.queryByTestId("premium-card")).not.toBeInTheDocument();
+
+    // loadFullScreenAd → loaded (mock이 setTimeout 0으로 발화)
+    await act(async () => {
+      vi.advanceTimersByTime(0);
+    });
+    const watchButton = screen.getByRole("button", { name: "광고 보고 상세 리포트 열기" });
+    expect(watchButton).not.toBeDisabled();
+
+    // showFullScreenAd → rewarded
+    fireEvent.click(watchButton);
+    await act(async () => {
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(screen.queryByTestId("report-gate")).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("criteria-card")).toHaveLength(2);
+    expect(screen.getByTestId("premium-card-value").textContent).toBe("138,290원");
+    expect(getReportUnlock()?.unlockedMonth).toBe("2026-09");
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 });

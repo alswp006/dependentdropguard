@@ -284,15 +284,12 @@ CRITICAL: Before creating any new function, type, or component, check the list a
 - 0017: SettingsPage 부품 — 계산 기준 BottomSheet (files: src/components/settings/RulesSheet.tsx, src/components/settings/__tests__/RulesSheet.test.tsx)
 - 0019: 라우팅 연결 + 탭바 레이아웃 + Provider 배선 (App.tsx) (files: src/App.tsx, src/components/TabLayout.tsx, src/__tests__/routes.test.tsx)
 - 0020: 정적 검수 스크립트 + 화면 간 흐름·콘솔 에러 테스트 (files: scripts/check-compliance.mjs, package.json, src/__tests__/flows.test.tsx)
+- 0018: SettingsPage — 사업자 행·리마인더·전체 삭제·면책 (/settings) (files: src/pages/Settings.tsx, src/pages/__tests__/Settings.test.tsx)
 
 ## TDD 상태
 ⚠️ TDD 테스트 파일 자동 작성에 실패했습니다. 소스 코드를 작성하기 전에 `src/__tests__/packet-XXXX.test.ts` 파일에 AC 기반 테스트를 먼저 작성하세요 (TDD red phase). 테스트 작성 후 구현하세요.
 
 ## Available exports from existing files
-// src/App.tsx
-export function AppRoutes() {
-export default function App() {
-
 // src/components/AdSlot.tsx
 export function AdSlot({ adGroupId, className, variant, theme }: AdSlotProps) {
 
@@ -361,7 +358,8 @@ export function CompareCard({ title, result }: CompareCardProps) {
 
 // src/domain/diagnosis.ts
 export interface BizStatus {
-export function summarizeYear(records: MonthlyInc
+export function summarizeYear(records: MonthlyIncomeRecord[], year: number): AnnualSummary | null {
+export function estimatePre
 
 ## Memory Index (자동 학습 — 힌트로만 사용, 실제 코드 확인 필수)
 
