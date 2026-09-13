@@ -12,6 +12,7 @@ import { test, expect, type Page } from "@playwright/test";
  */
 const ROUTES: { path: string; name: string }[] = [
   { path: "/", name: "home" },
+  { path: "/history", name: "history" },
   // { path: "/result", name: "result" },   // ← 이 앱의 라우트를 추가
   // { path: "/settings", name: "settings" },
 ];
@@ -19,7 +20,39 @@ const ROUTES: { path: string; name: string }[] = [
 /** 데이터가 필요한 화면용 localStorage 시드(앱에 맞게 채워라). 앱 스크립트보다 먼저 실행된다. */
 async function seed(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    // window.localStorage.setItem("MY_STORAGE_KEY", JSON.stringify({ /* ... */ }));
+    window.localStorage.setItem(
+      "ddg:profile:v1",
+      JSON.stringify({
+        version: 1,
+        hasBusinessRegistration: false,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      }),
+    );
+    window.localStorage.setItem(
+      "ddg:records:v1",
+      JSON.stringify({
+        version: 1,
+        items: [
+          {
+            month: "2026-01",
+            salaryIncome: 3_200_000,
+            sideIncome: 0,
+            otherIncome: 0,
+            memo: "",
+            updatedAt: "2026-01-31T00:00:00.000Z",
+          },
+          {
+            month: "2026-02",
+            salaryIncome: 3_200_000,
+            sideIncome: 500_000,
+            otherIncome: 0,
+            memo: "",
+            updatedAt: "2026-02-28T00:00:00.000Z",
+          },
+        ],
+      }),
+    );
   });
 }
 

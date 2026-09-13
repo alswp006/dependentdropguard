@@ -200,6 +200,7 @@ export interface DiagnosisResult {
     Settings.tsx
     Simulate.tsx
     __TdsGallery.tsx
+    __tests__/
   state/
     AppDataContext.tsx
   storage/
@@ -253,6 +254,9 @@ export interface DiagnosisResult {
 
 ### Module Dependencies (import graph)
   lib/routeState.ts → imports: types/navigation, lib/contract
+  pages/Home.tsx → imports: components/ScreenScaffold, components/SummaryHero, components/Card, components/CountUp, components/MiniBar, components/AdSlot, components/StateView, components/home/ReminderBanner, domain/diagnosis, domain/rules, utils/format, lib/routeState, state/AppDataContext, types/navigation, lib/types
+  pages/Profile.tsx → imports: components/ScreenScaffold, components/BottomCTA, components/Card, state/AppDataContext, lib/routeState, domain/rules
+  pages/Record.tsx → imports: components/ScreenScaffold, components/BottomCTA, components/record/MonthPickerSheet, components/record/StatusChangeDialog, state/AppDataContext, lib/routeState, domain/diagnosis, domain/rules, lib/validation, utils/format, storage/records, types/navigation, lib/types
 CRITICAL: Before creating any new function, type, or component, check the list above. If something similar exists, import and use it.
 
 ## Already Implemented (do NOT duplicate or overwrite)
@@ -267,6 +271,12 @@ CRITICAL: Before creating any new function, type, or component, check the list a
 - 0011: HomePage 부품 — 월간 입력 리마인더 배너 (files: src/components/home/ReminderBanner.tsx, src/components/home/__tests__/ReminderBanner.test.tsx)
 - 0015: SimulatePage 부품 — 현재/시뮬레이션 비교 카드 (files: src/components/simulate/CompareCard.tsx, src/components/simulate/__tests__/CompareCard.test.tsx)
 - 0017: SettingsPage 부품 — 계산 기준 BottomSheet (files: src/components/settings/RulesSheet.tsx, src/components/settings/__tests__/RulesSheet.test.tsx)
+- 0007: ProfilePage — 사업자등록 여부 온보딩/수정 (/profile) (files: src/pages/Profile.tsx, src/pages/__tests__/Profile.test.tsx)
+- 0010: RecordPage — 월 소득 입력 폼·저장·상태 변화 연결 (/record) (files: src/pages/Record.tsx, src/pages/__tests__/Record.test.tsx)
+- 0012: HomePage — 진단 대시보드·빈 상태·저장 Toast·배너 광고 (/) (files: src/pages/Home.tsx, src/pages/__tests__/Home.test.tsx)
+
+## TDD 상태
+⚠️ TDD 테스트 파일 자동 작성에 실패했습니다. 소스 코드를 작성하기 전에 `src/__tests__/packet-XXXX.test.ts` 파일에 AC 기반 테스트를 먼저 작성하세요 (TDD red phase). 테스트 작성 후 구현하세요.
 
 ## Available exports from existing files
 // src/App.tsx
