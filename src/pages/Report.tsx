@@ -8,7 +8,6 @@ import { SummaryHero } from '@/components/SummaryHero';
 import { Card } from '@/components/Card';
 import { Amount } from '@/components/Amount';
 import { MiniBar } from '@/components/MiniBar';
-import { AdSlot } from '@/components/AdSlot';
 import { EmptyState } from '@/components/StateView';
 import { ReportUnlockManager } from '@/pages/ReportUnlockManager';
 import { summarizeYear, diagnose, estimatePremium, findDropMonth } from '@/domain/diagnosis';
@@ -205,12 +204,9 @@ export default function Report() {
           </Button>
 
           <Spacing size={24} />
-          {import.meta.env.VITE_TOSS_AD_GROUP_ID ? (
-            <div data-testid="report-ad-slot">
-              <AdSlot adGroupId={import.meta.env.VITE_TOSS_AD_GROUP_ID} />
-            </div>
-          ) : null}
-
+          <Paragraph.Text typography="t7" color="var(--adaptiveGrey600)">
+            재산·자동차분은 제외하고 소득분만 반영한 추정치예요
+          </Paragraph.Text>
           <Spacing size={16} />
           <Paragraph.Text typography="t7" color="var(--adaptiveGrey600)">
             {DISCLAIMER_TEXT}

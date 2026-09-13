@@ -83,7 +83,7 @@ describe("RecordPage — 월 소득 입력 폼·저장·상태 변화 연결 (/r
     expect(saved?.salaryIncome).toBe(2_000_000);
     expect(saved?.sideIncome).toBe(300_000);
     expect(saved?.otherIncome).toBe(50_000);
-    expect(mockNavigate).toHaveBeenCalledWith("/", { state: { savedMonth: "2026-08" } });
+    expect(mockNavigate).toHaveBeenCalledWith("/", { replace: true, state: { savedMonth: "2026-08" } });
 
     // 탭바는 숨겨져 있어야 한다(단독 폼 화면)
     expect(screen.queryByRole("tablist", { name: "메인 네비게이션" })).not.toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("RecordPage — 월 소득 입력 폼·저장·상태 변화 연결 (/r
     clickSave();
 
     expect(getRecord("2026-08")?.salaryIncome).toBe(1_500_000);
-    expect(mockNavigate).toHaveBeenCalledWith("/history", { state: { savedMonth: "2026-08" } });
+    expect(mockNavigate).toHaveBeenCalledWith("/history", { replace: true, state: { savedMonth: "2026-08" } });
   });
 
   it("AC-2[P0]: 본업에 '1000000001' 입력 시 validateAmount와 동일한 에러가 보이고, 저장해도 setItem은 0회다", async () => {
@@ -192,7 +192,7 @@ describe("RecordPage — 월 소득 입력 폼·저장·상태 변화 연결 (/r
     clickSave();
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
-    expect(mockNavigate).toHaveBeenCalledWith("/", { state: { savedMonth: "2026-08" } });
+    expect(mockNavigate).toHaveBeenCalledWith("/", { replace: true, state: { savedMonth: "2026-08" } });
   });
 
   it("AC-5: state.month='2026-10'(미래 월)이면 대상월은 '8월'로 대체되고 Toast로 알린다", async () => {

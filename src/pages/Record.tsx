@@ -128,13 +128,13 @@ export default function Record() {
     }
 
     const savedState = { savedMonth: month } satisfies RouteState['/'];
-    navigate(parsed.from === 'history' ? '/history' : '/', { state: savedState });
+    navigate(parsed.from === 'history' ? '/history' : '/', { replace: true, state: savedState });
   }
 
   function handleStatusDialogClose() {
     setStatusChange(null);
     const savedState = { savedMonth: month } satisfies RouteState['/'];
-    navigate(parsed.from === 'history' ? '/history' : '/', { state: savedState });
+    navigate(parsed.from === 'history' ? '/history' : '/', { replace: true, state: savedState });
   }
 
   function handleViewReport() {

@@ -56,19 +56,21 @@ describe("HistoryPage — 연도 탭·월별 목록·누적·추이·삭제 (/hi
     vi.setSystemTime(NOW);
   });
 
-  it("AC-1[P0]: 2026-01·2026-08·2025-12 기록이 있으면 기본 탭 '2026년'에 행 2개, '2025년' 탭에 행 1개('2025년 12월')가 보인다", async () => {
+  it("AC-1[P0]: 2026-01·2026-08·2025-12 기록이 있으면 기본 탭 '2026년'에 1월~9월(9행, 미입력 포함), '2025년' 탭에 1월~12월(12행)이 보인다", async () => {
     seedRecords([makeRecord("2026-01"), makeRecord("2026-08"), makeRecord("2025-12")]);
 
     await renderHistory();
 
     expect(screen.getByRole("tab", { name: "2026년" }).getAttribute("aria-selected")).toBe("true");
-    expect(screen.getAllByTestId(/^history-row-/)).toHaveLength(2);
+    expect(screen.getAllByTestId(/^history-row-/)).toHaveLength(9);
+    expect(screen.getAllByTestId("month-row")).toHaveLength(9);
     expect(screen.getByText("1월")).toBeInTheDocument();
     expect(screen.getByText("8월")).toBeInTheDocument();
+    expect(screen.getAllByText("미입력").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("tab", { name: "2025년" }));
 
-    expect(screen.getAllByTestId(/^history-row-/)).toHaveLength(1);
+    expect(screen.getAllByTestId(/^history-row-/)).toHaveLength(12);
     expect(screen.getByText("2025년 12월")).toBeInTheDocument();
   });
 
@@ -82,12 +84,12 @@ describe("HistoryPage — 연도 탭·월별 목록·누적·추이·삭제 (/hi
     await renderHistory();
 
     expect(screen.getByText("1,500,000원")).toBeInTheDocument();
-    expect(screen.getByTestId("history-sparkline")).toBeInTheDocument();
+    expect(screen.getByTestId("income-sparkline")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "2025년" }));
 
     // 2025년엔 기록이 1건뿐이므로 Sparkline이 렌더되지 않는다.
-    expect(screen.queryByTestId("history-sparkline")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("income-sparkline")).not.toBeInTheDocument();
   });
 
   it("AC-3[P0]: '8월' 행을 클릭하면 pathname '/record', state {month:'2026-08', from:'history'}이다", async () => {
@@ -124,7 +126,7 @@ describe("HistoryPage — 연도 탭·월별 목록·누적·추이·삭제 (/hi
 
     expect(getRecord("2026-08")).toBeNull();
     expect(getRecords()).toHaveLength(1);
-    expect(screen.queryByTestId("history-row-2026-08")).not.toBeInTheDocument();
+    expect(within(screen.getByTestId("history-row-2026-08")).getByText("미입력")).toBeInTheDocument();
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
 

@@ -63,13 +63,6 @@ export type validateRecordFn = (amountKrw: number) => { valid: boolean; error?: 
 
 ```
 
-## ⏳ 시간 예약으로 미뤄진 화면 — 자리 페이지로만 존재한다(실패가 아니라 미룸)
-다음 화면 패킷은 시간 예약으로 미뤄져 이 밤에는 만들어지지 않는다. 스캐폴드(배선 선행)가 이 화면들을
-**"준비 중" 자리 페이지로 이미 import·라우트해 두었다** — 컴파일된다:
-- 0018 "SettingsPage — 사업자 행·리마인더·전체 삭제·면책 (/settings)" (src/pages/Settings.tsx, src/pages/__tests__/Settings.test.tsx)
-- **Route·import는 그대로 두어라.** 지우지도 말고 새로 채우지도 마라 — 자리 페이지(첫 줄 `@ai-factory:placeholder`)는 그 화면 패킷의 몫이다.
-- 존재하는(실속) 화면만 배선·연결하고, 테스트·검증 범위도 실속 화면으로 좁혀라 — 자리 페이지의 내용·동작을 검증하는 테스트는 게이트에서 막힌다.
-
 ## Shared Types Contract (IMPORT these, do NOT redefine)
 ```typescript
 // Domain types — SPEC Data Models
@@ -205,6 +198,7 @@ export interface DiagnosisResult {
     Profile.tsx
     Record.tsx
     Report.tsx
+    ReportUnlockManager.tsx
     Settings.tsx
     Simulate.tsx
     __TdsGallery.tsx
@@ -263,11 +257,11 @@ export interface DiagnosisResult {
 
 ### Module Dependencies (import graph)
   lib/routeState.ts → imports: types/navigation, lib/contract
-  pages/History.tsx → imports: components/ScreenScaffold, components/Sparkline, components/AdSlot, components/StateView, domain/diagnosis, utils/format, lib/routeState, state/AppDataContext, types/navigation
+  pages/History.tsx → imports: components/ScreenScaffold, components/Sparkline, components/AdSlot, components/Card, components/StateView, domain/diagnosis, utils/format, lib/routeState, state/AppDataContext, types/navigation, lib/types
   pages/Home.tsx → imports: components/ScreenScaffold, components/SummaryHero, components/Card, components/CountUp, components/MiniBar, components/AdSlot, components/StateView, components/home/ReminderBanner, domain/diagnosis, domain/rules, utils/format, lib/routeState, state/AppDataContext, types/navigation, lib/types
   pages/Profile.tsx → imports: components/ScreenScaffold, components/BottomCTA, components/Card, state/AppDataContext, lib/routeState, domain/rules
   pages/Record.tsx → imports: components/ScreenScaffold, components/BottomCTA, components/record/MonthPickerSheet, components/record/StatusChangeDialog, state/AppDataContext, lib/routeState, domain/diagnosis, domain/rules, lib/validation, utils/format, storage/records, types/navigation, lib/types
-  pages/Simulate.tsx → imports: components/ScreenScaffold, components/AdSlot, components/simulate/CompareCard, domain/diagnosis, domain/simulation, domain/rules, lib/validation, utils/format, lib/routeState, state/AppDataContext
+  pages/Report.tsx → imports: components/ScreenScaffold, components/SummaryHero, components/Card, components/Amount, components/MiniBar, components/StateView, pages/ReportUnlockManager, domain/diagnosis, domain/rules, utils/format, lib/routeState, state/AppDataContext, types/navigat...
 CRITICAL: Before creating any new function, type, or component, check the list above. If something similar exists, import and use it.
 
 ## Already Implemented (do NOT duplicate or overwrite)
@@ -277,16 +271,17 @@ CRITICAL: Before creating any new function, type, or component, check the list a
 - 0004: 월별 소득 기록 저장소(CRUD+검증) + 전체 삭제 (files: src/storage/records.ts, src/storage/clearAll.ts, src/storage/__tests__/records.test.ts)
 - 0005: 진단 엔진: 연 환산·판정·보험료·시뮬레이션 순수 함수 (files: src/domain/diagnosis.ts, src/domain/simulation.ts, src/domain/__tests__/diagnosis.test.ts, src/domain/__tests__/simulation.test.ts)
 - 0006: 폼 검증 + Route State 파서 + AppDataContext + 테스트 하네스 (files: src/lib/validation.ts, src/lib/routeState.ts, src/state/AppDataContext.tsx, src/test/renderWithProviders.tsx, src/lib/__tests__/dataLayer.test.tsx)
+- 0007: ProfilePage — 사업자등록 여부 온보딩/수정 (/profile) (files: src/pages/Profile.tsx, src/pages/__tests__/Profile.test.tsx)
 - 0008: RecordPage 부품 — 월 선택 BottomSheet (files: src/components/record/MonthPickerSheet.tsx, src/components/record/__tests__/MonthPickerSheet.test.tsx)
 - 0009: RecordPage 부품 — 자격 상태 변화 AlertDialog (files: src/components/record/StatusChangeDialog.tsx, src/components/record/__tests__/StatusChangeDialog.test.tsx)
-- 0011: HomePage 부품 — 월간 입력 리마인더 배너 (files: src/components/home/ReminderBanner.tsx, src/components/home/__tests__/ReminderBanner.test.tsx)
-- 0015: SimulatePage 부품 — 현재/시뮬레이션 비교 카드 (files: src/components/simulate/CompareCard.tsx, src/components/simulate/__tests__/CompareCard.test.tsx)
-- 0017: SettingsPage 부품 — 계산 기준 BottomSheet (files: src/components/settings/RulesSheet.tsx, src/components/settings/__tests__/RulesSheet.test.tsx)
-- 0007: ProfilePage — 사업자등록 여부 온보딩/수정 (/profile) (files: src/pages/Profile.tsx, src/pages/__tests__/Profile.test.tsx)
 - 0010: RecordPage — 월 소득 입력 폼·저장·상태 변화 연결 (/record) (files: src/pages/Record.tsx, src/pages/__tests__/Record.test.tsx)
+- 0011: HomePage 부품 — 월간 입력 리마인더 배너 (files: src/components/home/ReminderBanner.tsx, src/components/home/__tests__/ReminderBanner.test.tsx)
 - 0012: HomePage — 진단 대시보드·빈 상태·저장 Toast·배너 광고 (/) (files: src/pages/Home.tsx, src/pages/__tests__/Home.test.tsx)
+- 0013: ReportPage — 보상형 광고 게이트 상세 리포트 (/report) (files: src/pages/Report.tsx, src/pages/ReportUnlockManager.tsx, src/pages/__tests__/Report.test.tsx, src/pages/__tests__/ReportUnlockManager.test.tsx)
 - 0014: HistoryPage — 연도 탭·월별 목록·누적·추이·삭제 (/history) (files: src/pages/History.tsx, src/pages/__tests__/History.test.tsx)
+- 0015: SimulatePage 부품 — 현재/시뮬레이션 비교 카드 (files: src/components/simulate/CompareCard.tsx, src/components/simulate/__tests__/CompareCard.test.tsx)
 - 0016: SimulatePage — 지역가입자 전환 시뮬레이션 (/simulate) (files: src/pages/Simulate.tsx, src/pages/__tests__/Simulate.test.tsx)
+- 0017: SettingsPage 부품 — 계산 기준 BottomSheet (files: src/components/settings/RulesSheet.tsx, src/components/settings/__tests__/RulesSheet.test.tsx)
 - 0019: 라우팅 연결 + 탭바 레이아웃 + Provider 배선 (App.tsx) (files: src/App.tsx, src/components/TabLayout.tsx, src/__tests__/routes.test.tsx)
 - 0020: 정적 검수 스크립트 + 화면 간 흐름·콘솔 에러 테스트 (files: scripts/check-compliance.mjs, package.json, src/__tests__/flows.test.tsx)
 

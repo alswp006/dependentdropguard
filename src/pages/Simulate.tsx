@@ -40,13 +40,22 @@ export default function Simulate() {
 
   const year = parseYearState(location.state);
   const baseHasBiz = profile?.hasBusinessRegistration ?? false;
+  const baseSummary = summarizeYear(records, year);
+  const baseDiagnosis = baseSummary
+    ? diagnose(baseSummary, { hasBusinessRegistration: baseHasBiz }, RULES)
+    : null;
 
-  const [salaryRaw, setSalaryRaw] = useState('');
-  const [sideRaw, setSideRaw] = useState('');
+  // 기록이 있으면 현재 월 평균(salaryAnnual/12, sideAnnual/12)으로 입력값을 미리 채운다.
+  const [salaryRaw, setSalaryRaw] = useState(() =>
+    baseSummary ? formatAmountInput(String(Math.floor(baseSummary.salaryAnnual / 12))) : '',
+  );
+  const [sideRaw, setSideRaw] = useState(() =>
+    baseSummary ? formatAmountInput(String(Math.floor(baseSummary.sideAnnual / 12))) : '',
+  );
   const [simBiz, setSimBiz] = useState(baseHasBiz);
 
-  const lastValidSalary = useRef(0);
-  const lastValidSide = useRef(0);
+  const lastValidSalary = useRef(baseSummary ? Math.floor(baseSummary.salaryAnnual / 12) : 0);
+  const lastValidSide = useRef(baseSummary ? Math.floor(baseSummary.sideAnnual / 12) : 0);
 
   const salaryErr = amountError(salaryRaw);
   const sideErr = amountError(sideRaw);
@@ -56,11 +65,6 @@ export default function Simulate() {
   if (!sideErr) lastValidSide.current = parseAmountInput(sideRaw) ?? 0;
   const salaryMonthly = lastValidSalary.current;
   const sideMonthly = lastValidSide.current;
-
-  const baseSummary = summarizeYear(records, year);
-  const baseDiagnosis = baseSummary
-    ? diagnose(baseSummary, { hasBusinessRegistration: baseHasBiz }, RULES)
-    : null;
 
   const { sim, deltaSide, premiumAnnualDelta, netGain } = computeSimulation({
     baseSummary,

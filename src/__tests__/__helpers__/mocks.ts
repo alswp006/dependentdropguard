@@ -159,8 +159,8 @@ export function mockTds() {
         children,
       ),
 
-    Switch: ({ checked, onChange }: any) =>
-      React.createElement("input", { type: "checkbox", checked, onChange, role: "switch" }),
+    Switch: ({ checked, onChange, ...props }: any) =>
+      React.createElement("input", { type: "checkbox", checked, onChange, role: "switch", ...props }),
   }));
 }
 

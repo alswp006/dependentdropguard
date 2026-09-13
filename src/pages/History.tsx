@@ -5,12 +5,39 @@ import { generateHapticFeedback } from '@apps-in-toss/web-framework';
 import { ScreenScaffold } from '@/components/ScreenScaffold';
 import { Sparkline } from '@/components/Sparkline';
 import { AdSlot } from '@/components/AdSlot';
+import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/StateView';
 import { summarizeYear } from '@/domain/diagnosis';
 import { formatWon, formatMonthLabel, prevMonthKey } from '@/utils/format';
 import { parseHomeState } from '@/lib/routeState';
 import { useAppData } from '@/state/AppDataContext';
 import type { RouteState } from '@/types/navigation';
+import type { MonthlyIncomeRecord } from '@/lib/types';
+
+function recordTotal(record: MonthlyIncomeRecord): number {
+  return record.salaryIncome + record.sideIncome + record.otherIncome;
+}
+
+interface MonthRow {
+  month: string;
+  record: MonthlyIncomeRecord | null;
+  diff: number | null;
+}
+
+// 선택한 해의 모든 달을 내림차순으로 만들고, 기록이 없는 달은 "미입력"으로 채운다.
+function buildMonthRows(year: number, maxMonth: number, records: MonthlyIncomeRecord[]): MonthRow[] {
+  const byMonth = new Map(records.map((r) => [r.month, r]));
+  const rows: MonthRow[] = [];
+  for (let m = maxMonth; m >= 1; m--) {
+    const month = `${year}-${String(m).padStart(2, '0')}`;
+    const record = byMonth.get(month) ?? null;
+    const prevMonth = `${year}-${String(m - 1).padStart(2, '0')}`;
+    const prevRecord = m > 1 ? byMonth.get(prevMonth) ?? null : null;
+    const diff = record && prevRecord ? recordTotal(record) - recordTotal(prevRecord) : null;
+    rows.push({ month, record, diff });
+  }
+  return rows;
+}
 
 function fireTickWeakHaptic() {
   try {
@@ -43,6 +70,8 @@ export default function History() {
   const yearRecords = records.filter((r) => r.month.startsWith(`${selectedYear}-`));
   const actualTotal = summarizeYear(records, selectedYear)?.actualTotal ?? 0;
   const sparklineData = yearRecords.map((r) => r.salaryIncome + r.sideIncome + r.otherIncome);
+  const maxMonth = selectedYear === currentYear ? now.getMonth() + 1 : 12;
+  const monthRows = buildMonthRows(selectedYear, maxMonth, yearRecords);
 
   function goToRecord(month: string) {
     navigate('/record', { state: { month, from: 'history' } as RouteState['/record'] });
@@ -80,64 +109,81 @@ export default function History() {
         <EmptyState
           testId="history-empty-state"
           icon={<Asset.ContentIcon name="iconWriteRegular" alt="입력" style={{ width: 48, height: 48 }} />}
-          title="아직 입력한 소득이 없어요"
+          title="이 해에 입력된 소득이 없어요"
           action={
             <Button variant="weak" onClick={() => goToRecord(prevMonthKey(now))}>
               소득 입력하기
             </Button>
           }
         />
-      ) : (
-        <>
-          <Paragraph.Text typography="t6" color="var(--adaptiveGrey600)">
-            누적 실제 소득
-          </Paragraph.Text>
-          <Paragraph.Text typography="t3" style={{ wordBreak: 'keep-all' }}>
-            {formatWon(actualTotal)}
-          </Paragraph.Text>
+      ) : null}
 
-          <Spacing size={12} />
+      <Spacing size={16} />
 
-          {yearRecords.length >= 2 ? <Sparkline testId="history-sparkline" data={sparklineData} /> : null}
+      <Card testId="ytd-card">
+        <Paragraph.Text typography="t6" color="var(--adaptiveGrey600)">
+          {`${selectedYear}년 누적`}
+        </Paragraph.Text>
+        <Paragraph.Text typography="t3" style={{ wordBreak: 'keep-all' }}>
+          {formatWon(actualTotal)}
+        </Paragraph.Text>
+      </Card>
 
-          <Spacing size={16} />
+      <Spacing size={12} />
 
-          {yearRecords.map((record) => {
-            const monthTotal = record.salaryIncome + record.sideIncome + record.otherIncome;
-            const monthLabel = formatMonthLabel(record.month, now);
-            const texts = (
-              <ListRow.Texts
-                type="2RowTypeA"
-                top={monthLabel}
-                bottom={`본업 ${formatWon(record.salaryIncome)} · 부업 ${formatWon(record.sideIncome)}`}
-              />
-            );
-            const right = (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Paragraph.Text typography="t6">{formatWon(monthTotal)}</Paragraph.Text>
-                <Button
-                  size="small"
-                  variant="weak"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteTarget(record.month);
-                  }}
-                >
-                  삭제
-                </Button>
-              </div>
-            );
-            return (
-              <div key={record.month} data-testid={`history-row-${record.month}`}>
-                <ListRow onClick={() => goToRecord(record.month)} contents={texts} right={right}>
-                  {texts}
-                  {right}
-                </ListRow>
-              </div>
-            );
-          })}
-        </>
-      )}
+      {yearRecords.length >= 2 ? (
+        <Sparkline testId="income-sparkline" data={sparklineData} />
+      ) : yearRecords.length === 1 ? (
+        <Paragraph.Text typography="t6" color="var(--adaptiveGrey600)">
+          2개월 이상 입력하면 추이를 볼 수 있어요
+        </Paragraph.Text>
+      ) : null}
+
+      <Spacing size={16} />
+
+      {monthRows.map(({ month, record, diff }) => {
+        const monthLabel = formatMonthLabel(month, now);
+        const bottom = record
+          ? `본업 ${formatWon(record.salaryIncome)} · 부업 ${formatWon(record.sideIncome)}`
+          : '미입력';
+        const texts = <ListRow.Texts type="2RowTypeA" top={monthLabel} bottom={bottom} />;
+        const right = record ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ textAlign: 'right' }}>
+              <Paragraph.Text typography="t6">{formatWon(recordTotal(record))}</Paragraph.Text>
+              {diff !== null ? (
+                <Paragraph.Text typography="st13" color={diff >= 0 ? 'var(--adaptiveRed)' : 'var(--adaptiveBlue)'}>
+                  {`${diff >= 0 ? '+' : ''}${formatWon(diff)}`}
+                </Paragraph.Text>
+              ) : null}
+            </div>
+            <Button
+              size="small"
+              variant="weak"
+              data-testid="delete-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteTarget(month);
+              }}
+            >
+              삭제
+            </Button>
+          </div>
+        ) : null;
+        return (
+          <div key={month} data-testid={`history-row-${month}`}>
+            <ListRow
+              data-testid="month-row"
+              onClick={() => goToRecord(month)}
+              contents={texts}
+              right={right}
+            >
+              {texts}
+              {right}
+            </ListRow>
+          </div>
+        );
+      })}
 
       <Spacing size={24} />
 

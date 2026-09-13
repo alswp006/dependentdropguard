@@ -40,6 +40,16 @@ function seedNoRecords() {
   localStorage.setItem(RECORDS_KEY, JSON.stringify({ version: 1, items: [] }));
 }
 
+function seedRecords(items: { month: string; salaryIncome: number; sideIncome: number }[]) {
+  localStorage.setItem(
+    RECORDS_KEY,
+    JSON.stringify({
+      version: 1,
+      items: items.map((r) => ({ ...r, otherIncome: 0, memo: "", updatedAt: `${r.month}-01T00:00:00.000Z` })),
+    }),
+  );
+}
+
 function renderSimulate() {
   return render(
     React.createElement(
@@ -64,6 +74,24 @@ describe("SimulatePage — 지역가입자 전환 시뮬레이션 (/simulate)", 
       "부업 소득을 늘려 비교해보세요",
     );
     expect(screen.getAllByTestId("compare-card")).toHaveLength(2);
+  });
+
+  it("AC-1[P0]: 기록이 있으면 sim-salary·sim-side에 현재 월 평균 금액이 미리 채워지고 compare-card[0]에 현재 상태가 보인다", () => {
+    seedProfile({ hasBusinessRegistration: false });
+    seedRecords([
+      { month: "2026-01", salaryIncome: 1_000_000, sideIncome: 200_000 },
+      { month: "2026-02", salaryIncome: 1_000_000, sideIncome: 200_000 },
+      { month: "2026-03", salaryIncome: 1_000_000, sideIncome: 200_000 },
+    ]);
+
+    renderSimulate();
+
+    expect((screen.getByTestId("sim-salary") as HTMLInputElement).value).toBe("1,000,000");
+    expect((screen.getByTestId("sim-side") as HTMLInputElement).value).toBe("200,000");
+    expect(screen.getByRole("switch")).not.toBeChecked();
+
+    const cards = screen.getAllByTestId("compare-card");
+    expect(cards[0].textContent).toContain("14,400,000원");
   });
 
   it("AC-2: sim-side가 200,000일 때 '+50만원' Chip을 누르면 700,000, 이어서 '+200만원'을 누르면 2,700,000이고 tickWeak 햅틱이 2회 발생한다", async () => {
