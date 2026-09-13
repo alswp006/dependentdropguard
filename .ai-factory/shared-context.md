@@ -288,6 +288,10 @@ CRITICAL: Before creating any new function, type, or component, check the list a
 - 0014: HistoryPage — 연도 탭·월별 목록·누적·추이·삭제 (/history) (files: src/pages/History.tsx, src/pages/__tests__/History.test.tsx)
 - 0016: SimulatePage — 지역가입자 전환 시뮬레이션 (/simulate) (files: src/pages/Simulate.tsx, src/pages/__tests__/Simulate.test.tsx)
 - 0019: 라우팅 연결 + 탭바 레이아웃 + Provider 배선 (App.tsx) (files: src/App.tsx, src/components/TabLayout.tsx, src/__tests__/routes.test.tsx)
+- 0020: 정적 검수 스크립트 + 화면 간 흐름·콘솔 에러 테스트 (files: scripts/check-compliance.mjs, package.json, src/__tests__/flows.test.tsx)
+
+## TDD 상태
+⚠️ TDD 테스트 파일 자동 작성에 실패했습니다. 소스 코드를 작성하기 전에 `src/__tests__/packet-XXXX.test.ts` 파일에 AC 기반 테스트를 먼저 작성하세요 (TDD red phase). 테스트 작성 후 구현하세요.
 
 ## Available exports from existing files
 // src/App.tsx
