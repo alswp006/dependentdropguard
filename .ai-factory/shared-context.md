@@ -174,6 +174,7 @@ export interface DiagnosisResult {
     TossRewardAd.tsx
     home/
     record/
+    settings/
     simulate/
   domain/
     __tests__/
@@ -247,6 +248,7 @@ export interface DiagnosisResult {
 - home/ReminderBanner.tsx: shouldShowReminder, ReminderBanner
 - record/MonthPickerSheet.tsx: MonthPickerSheet
 - record/StatusChangeDialog.tsx: StatusChangeDialog
+- settings/RulesSheet.tsx: RulesSheet
 - simulate/CompareCard.tsx: CompareCard
 
 ### Module Dependencies (import graph)
@@ -264,6 +266,10 @@ CRITICAL: Before creating any new function, type, or component, check the list a
 - 0009: RecordPage 부품 — 자격 상태 변화 AlertDialog (files: src/components/record/StatusChangeDialog.tsx, src/components/record/__tests__/StatusChangeDialog.test.tsx)
 - 0011: HomePage 부품 — 월간 입력 리마인더 배너 (files: src/components/home/ReminderBanner.tsx, src/components/home/__tests__/ReminderBanner.test.tsx)
 - 0015: SimulatePage 부품 — 현재/시뮬레이션 비교 카드 (files: src/components/simulate/CompareCard.tsx, src/components/simulate/__tests__/CompareCard.test.tsx)
+- 0017: SettingsPage 부품 — 계산 기준 BottomSheet (files: src/components/settings/RulesSheet.tsx, src/components/settings/__tests__/RulesSheet.test.tsx)
+
+## TDD 상태
+⚠️ TDD 테스트 파일 자동 작성에 실패했습니다. 소스 코드를 작성하기 전에 `src/__tests__/packet-XXXX.test.ts` 파일에 AC 기반 테스트를 먼저 작성하세요 (TDD red phase). 테스트 작성 후 구현하세요.
 
 ## Available exports from existing files
 // src/App.tsx
@@ -325,15 +331,16 @@ export function MonthPickerSheet({
 // src/components/record/StatusChangeDialog.tsx
 export function StatusChangeDialog({
 
+// src/components/settings/RulesSheet.tsx
+export function RulesSheet({ open, onClose, rules = RULES }: RulesSheetProps) {
+
 // src/components/simulate/CompareCard.tsx
 export function CompareCard({ title, result }: CompareCardProps) {
 
 // src/domain/diagnosis.ts
 export interface BizStatus {
 export function summarizeYear(records: MonthlyIncomeRecord[], year: number): AnnualSummary | null {
-export function estimatePremium(totalAnnual: number, rules: RuleSet): PremiumEstimate {
-export function diagnose(summary: AnnualSummary, hasBiz: BizStatus, rules: RuleSet): DiagnosisResult {
-export funct
+export function estimatePremium(totalAnnual: number, rules: RuleSet): PremiumEst
 
 ## Memory Index (자동 학습 — 힌트로만 사용, 실제 코드 확인 필수)
 
