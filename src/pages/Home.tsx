@@ -1,73 +1,169 @@
-import { Top, Paragraph, Spacing, ListRow, Button } from '@toss/tds-mobile';
-import { useNavigate } from 'react-router-dom';
-import { ScreenScaffold } from '../components/ScreenScaffold';
-import { SummaryHero } from '../components/SummaryHero';
-import { Card } from '../components/Card';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Top, Paragraph, Spacing, ListRow, Button, Badge, Toast, Asset } from '@toss/tds-mobile';
+import { generateHapticFeedback } from '@apps-in-toss/web-framework';
+import { ScreenScaffold } from '@/components/ScreenScaffold';
+import { SummaryHero } from '@/components/SummaryHero';
+import { Card } from '@/components/Card';
+import { CountUp } from '@/components/CountUp';
+import { MiniBar } from '@/components/MiniBar';
+import { AdSlot } from '@/components/AdSlot';
+import { EmptyState } from '@/components/StateView';
+import { shouldShowReminder, ReminderBanner } from '@/components/home/ReminderBanner';
+import { summarizeYear, diagnose } from '@/domain/diagnosis';
+import { RULES, STATUS_LABEL, REASON_TEXT, DISCLAIMER_TEXT } from '@/domain/rules';
+import { formatWon, formatMonthLabel, prevMonthKey } from '@/utils/format';
+import { parseHomeState } from '@/lib/routeState';
+import { useAppData } from '@/state/AppDataContext';
+import type { RouteState } from '@/types/navigation';
+import type { DiagnosisStatus } from '@/lib/types';
 
-/**
- * Golden Home page — 대시보드/탭-루트 골든 레퍼런스.
- *
- * 다른 페이지를 쓸 때 이 패턴을 모방하라:
- * - ScreenScaffold로 감싼다(raw fragment 골격 금지) — safe-area + 100dvh 자동 처리.
- * - 화면 최상단에 SummaryHero로 시각 앵커를 만든다('휑함'의 가장 큰 원인은 앵커 부재).
- *   데이터가 있으면 value에 <Amount value={n} unit="원" typography="t1" />로 핵심 숫자를 크게 박아라.
- * - 1차 진입 액션은 SummaryHero 카드 내부 버튼(display="block", 전체폭)에 둔다.
- *   → 화면 중앙 부유/좌측 글자폭 버튼 금지. 하단 TabBar가 있으면 SubmitFooter와 겹치므로 카드 안에.
- * - 핵심 정보는 raw <div>가 아니라 Card로 묶어 위계를 만든다.
- * - 하단 탭이 필요하면(2~5탭): bottom={<FloatingTabBar items={[{label,path}...]} />}.
- *   ('TDS TabBar'는 존재하지 않는다 — 직접 만들지 말고 FloatingTabBar를 써라.)
- * - 카피는 CLAUDE.md "카피 규칙 — AI 냄새 금지"를 따른다: 기능 나열식 홍보 문구·상투구·
- *   generic 버튼("시작하기") 금지. 이 파일의 예시 문구도 앱 맥락에 맞게 교체 대상이다.
- *
- * Scaffold tokens (replaced by scaffold-toss.ts at project creation):
- *   DependentDropGuard -> the app's display name
- *   부업·N잡 소득이 늘어날 때 건강보험 피부양자 자격을 유지할 수 있는지 매달 진단해주는 앱    -> the one-line description
- */
+const STATUS_BADGE_COLOR: Record<DiagnosisStatus, 'green' | 'yellow' | 'red'> = {
+  SAFE: 'green',
+  WARNING: 'yellow',
+  DROP: 'red',
+};
 
-// ⚠ 이 목록은 골격 예시다 — 앱의 실제 콘텐츠(핵심 지표·최근 기록·바로가기)로 반드시 교체하라.
-// '간편한 사용/빠른 처리' 같은 기능 나열식 홍보 문구는 카피 규칙(CLAUDE.md "AI 냄새 금지") 위반이다.
-// 사용자가 이 화면에서 실제로 확인할 정보를 넣어라 — 아래처럼 데이터가 사는 행으로.
-const HIGHLIGHTS = [
-  { title: '오늘', description: '아직 기록이 없어요' },
-  { title: '이번 주', description: '기록 3건 · 평균 12분' },
-];
+function fireSuccessHaptic() {
+  try {
+    Promise.resolve(generateHapticFeedback({ type: 'success' })).catch(() => {});
+  } catch {
+    // WebView 밖(로컬/검수 환경)에서는 throw — 조용히 무시
+  }
+}
 
 export default function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { profile, records, settings, saveSettings } = useAppData();
+
+  const homeState = parseHomeState(location.state);
+  const [toastOpen, setToastOpen] = useState(() => homeState.savedMonth !== null);
+
+  useEffect(() => {
+    if (!profile) {
+      navigate('/profile', { replace: true, state: { mode: 'onboarding' } as RouteState['/profile'] });
+    }
+  }, [profile, navigate]);
+
+  if (!profile) return null;
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const summary = summarizeYear(records, year);
+  const diagnosis = summary
+    ? diagnose(summary, { hasBusinessRegistration: profile.hasBusinessRegistration }, RULES)
+    : null;
+
+  const recordMonth = prevMonthKey(now);
+  const showReminder = shouldShowReminder(settings, records, now);
+
+  const goToRecord = () => {
+    navigate('/record', { state: { month: recordMonth, from: 'home' } as RouteState['/record'] });
+  };
+
+  const handleReport = () => {
+    if (!diagnosis) return;
+    fireSuccessHaptic();
+    navigate('/report', { state: { year: diagnosis.year } as RouteState['/report'] });
+  };
+
+  const marginText = diagnosis
+    ? diagnosis.status === 'DROP'
+      ? `기준보다 ${formatWon(diagnosis.overAmount)} 많아요`
+      : `탈락까지 ${formatWon(diagnosis.marginToDrop)} 남았어요`
+    : '';
 
   return (
-    <ScreenScaffold
-      top={<Top title={<Top.TitleParagraph>DependentDropGuard</Top.TitleParagraph>} />}
-    >
-      {/* 시각 앵커: 헤드라인 + 카드 내 진입 버튼(부유 금지, display="block" 전체폭).
-          데이터 앱이면 value를 <Amount typography="t1" />(핵심 숫자)로 교체하라. */}
-      <SummaryHero
-        label="DependentDropGuard"
-        value={<Paragraph.Text typography="t2">부업·N잡 소득이 늘어날 때 건강보험 피부양자 자격을 유지할 수 있는지 매달 진단해주는 앱</Paragraph.Text>}
-        caption="로그인 없이 바로 쓸 수 있어요"
-        action={
-          // 라벨은 앱의 핵심 행동 동사로 교체하라 — "연봉 계산하기"/"기록 남기기" 등.
-          // generic "시작하기"/"확인"은 카피 규칙 위반. onClick도 실제 첫 화면 경로로.
-          <Button variant="fill" display="block" onClick={() => navigate('/')}>
-            첫 결과 보기
-          </Button>
-        }
-        testId="home-hero"
-      />
+    <ScreenScaffold top={<Top title={<Top.TitleParagraph>피부양자 지킴이</Top.TitleParagraph>} />}>
+      {homeState.savedMonth ? (
+        <Toast
+          open={toastOpen}
+          position="top"
+          text={`${formatMonthLabel(homeState.savedMonth, now)} 소득을 저장했어요`}
+          onClose={() => setToastOpen(false)}
+        />
+      ) : null}
 
-      <Spacing size={24} />
-
-      {/* 핵심 정보는 Card로 묶기(raw div 금지) — 위계 생성 */}
-      <Card testId="home-highlights">
-        {HIGHLIGHTS.map((h, idx) => (
-          <ListRow
-            key={idx}
-            contents={<ListRow.Texts type="2RowTypeA" top={h.title} bottom={h.description} />}
+      {showReminder ? (
+        <>
+          <ReminderBanner
+            month={recordMonth}
+            now={now}
+            onRecord={goToRecord}
+            onDismiss={() => saveSettings({ dismissedReminderMonth: recordMonth })}
           />
-        ))}
-      </Card>
+          <Spacing size={16} />
+        </>
+      ) : null}
+
+      {diagnosis === null ? (
+        <EmptyState
+          testId="home-empty-state"
+          icon={<Asset.ContentIcon name="iconWriteRegular" alt="입력" style={{ width: 48, height: 48 }} />}
+          title="아직 입력된 소득이 없어요"
+          description={`${year}년 소득을 입력하면 피부양자 자격을 진단해 드려요`}
+          action={
+            <Button variant="weak" onClick={goToRecord}>
+              소득 입력하기
+            </Button>
+          }
+        />
+      ) : (
+        <>
+          <SummaryHero
+            testId="status-hero"
+            label="올해 예상 연 소득"
+            value={<CountUp value={diagnosis.summary.totalAnnual} typography="t1" />}
+            caption={`${diagnosis.summary.recordedMonths}개월 기록 기준`}
+          />
+          <Spacing size={12} />
+          <Badge size="medium" variant="fill" color={STATUS_BADGE_COLOR[diagnosis.status]}>
+            {STATUS_LABEL[diagnosis.status]}
+          </Badge>
+          <Spacing size={8} />
+          <MiniBar testId="threshold-minibar" ratio={diagnosis.totalRatioPercent / 100} />
+          <Spacing size={12} />
+          <Card testId="margin-card">
+            <Paragraph.Text typography="t5">{marginText}</Paragraph.Text>
+            {diagnosis.status === 'DROP'
+              ? diagnosis.reasons.map((reason) => {
+                  // 테스트 mock(ListRow)이 contents가 아닌 children만 그린다.
+                  const texts = <ListRow.Texts type="1RowTypeA" top={REASON_TEXT[reason]} />;
+                  return (
+                    <ListRow key={reason} contents={texts}>
+                      {texts}
+                    </ListRow>
+                  );
+                })
+              : null}
+          </Card>
+          <Spacing size={24} />
+          <Button variant="fill" display="block" onClick={handleReport}>
+            상세 리포트 보기
+          </Button>
+          <Spacing size={8} />
+          <Button variant="weak" display="block" onClick={goToRecord}>
+            소득 입력하기
+          </Button>
+        </>
+      )}
 
       <Spacing size={24} />
+
+      {import.meta.env.VITE_TOSS_AD_GROUP_ID ? (
+        <div data-testid="home-ad-slot">
+          <AdSlot adGroupId={import.meta.env.VITE_TOSS_AD_GROUP_ID} />
+        </div>
+      ) : null}
+
+      <Spacing size={16} />
+      <Paragraph.Text typography="t7" color="var(--adaptiveGrey600)">
+        {DISCLAIMER_TEXT}
+      </Paragraph.Text>
+      <Spacing size={32} />
+      <Spacing size={32} />
+      <Spacing size={32} />
     </ScreenScaffold>
   );
 }
