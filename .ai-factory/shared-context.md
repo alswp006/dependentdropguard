@@ -179,10 +179,13 @@ export interface DiagnosisResult {
     simulation.ts
   hooks/
   lib/
+    __tests__/
     contract.ts
+    routeState.ts
     storage.ts
     types.ts
     utils.ts
+    validation.ts
   main.tsx
   pages/
     History.tsx
@@ -193,6 +196,8 @@ export interface DiagnosisResult {
     Settings.tsx
     Simulate.tsx
     __TdsGallery.tsx
+  state/
+    AppDataContext.tsx
   storage/
     __tests__/
     clearAll.ts
@@ -204,6 +209,8 @@ export interface DiagnosisResult {
   styles/
     globals.css
     reward-ad.css
+  test/
+    renderWithProviders.tsx
   types/
     navigation.ts
   utils/
@@ -213,9 +220,11 @@ export interface DiagnosisResult {
 
 ### Exports (src/lib/)
 - contract.ts: export type RouteState =; export type EntrepreneurStatus = 'registered' | 'not_registered'; export type InsuranceStatus = 'covered' | 'not_covered' | 'voluntary'; export type MonthRecord =; export type DiagnosisResult =; export type JUDGMENT_RULESFn = () =>; export type formatCurrencyFn = (amount: number, opts?:; export type diagnoseFn = (records: MonthRecord[], entrepreneurStatus: EntrepreneurStatus) => DiagnosisResult
+- routeState.ts: export function parseRouteState(url: string): RouteState; export function prevMonthKey(now: Date): string; export function parseHomeState(state: unknown):; export function parseProfileState(state: unknown):; export interface ParsedRecordState; export function parseRecordState(state: unknown, now: Date = new Date()): ParsedRecordState; export function parseYearState(state: unknown): number
 - storage.ts: export function getItem<T>(key: string): T | null; export function setItem<T>(key: string, value: T): void; export function removeItem(key: string): void
 - types.ts: export type StorageError = 'STORAGE_FULL' | 'STORAGE_UNAVAILABLE' | 'INVALID_INPUT'; export type StorageResult<T> = |; export interface UserProfile; export interface MonthlyIncomeRecord; export interface RecordsStore; export interface AppSettings; export interface ReportUnlock; export interface RuleSet
 - utils.ts: export function cn(...classes: (string | boolean | undefined | null)[]): string; export function formatNumber(n: number): string; export function formatCurrency(n: number, currency = 'KRW'): string
+- validation.ts: export function validateAmount(raw: string): string | null; export function validateMemo(memo: string): string | null; export function validateRecord(amountKrw: number):
 
 ### Components (src/components/)
 - AdSlot.tsx: AdSlot
@@ -232,6 +241,9 @@ export interface DiagnosisResult {
 - SummaryHero.tsx: SummaryHero
 - TossPurchase.tsx: TossPurchase
 - TossRewardAd.tsx: TossRewardAd
+
+### Module Dependencies (import graph)
+  lib/routeState.ts → imports: types/navigation, lib/contract
 CRITICAL: Before creating any new function, type, or component, check the list above. If something similar exists, import and use it.
 
 ## Already Implemented (do NOT duplicate or overwrite)
@@ -240,81 +252,4 @@ CRITICAL: Before creating any new function, type, or component, check the list a
 - 0003: 안전 저장소 코어 + 프로필·설정·리포트 열람 저장 (files: src/storage/safeStorage.ts, src/storage/profile.ts, src/storage/settings.ts, src/storage/reportUnlock.ts, src/storage/__tests__/core.test.ts)
 - 0004: 월별 소득 기록 저장소(CRUD+검증) + 전체 삭제 (files: src/storage/records.ts, src/storage/clearAll.ts, src/storage/__tests__/records.test.ts)
 - 0005: 진단 엔진: 연 환산·판정·보험료·시뮬레이션 순수 함수 (files: src/domain/diagnosis.ts, src/domain/simulation.ts, src/domain/__tests__/diagnosis.test.ts, src/domain/__tests__/simulation.test.ts)
-
-## Available exports from existing files
-// src/App.tsx
-export default function App() {
-
-// src/components/AdSlot.tsx
-export function AdSlot({ adGroupId, className, variant, theme }: AdSlotProps) {
-
-// src/components/Amount.tsx
-export function Amount({
-
-// src/components/BottomCTA.tsx
-export function SubmitFooter({
-export function ButtonStack({
-
-// src/components/Card.tsx
-export function Card({
-
-// src/components/CountUp.tsx
-export function CountUp({
-
-// src/components/FloatingTabBar.tsx
-export type TabItem = {
-export function FloatingTabBar({ items }: { items: TabItem[] }) {
-
-// src/components/MiniBar.tsx
-export function MiniBar({
-
-// src/components/PageShell.tsx
-export function PageShell({ children, style }: { children: ReactNode; style?: CSSProperties }) {
-
-// src/components/ScreenScaffold.tsx
-export function ScreenScaffold({
-
-// src/components/Sparkline.tsx
-export function Sparkline({
-
-// src/components/StateView.tsx
-export function EmptyState({
-export function LoadingState({
-
-// src/components/SummaryHero.tsx
-export function SummaryHero({
-
-// src/components/TossPurchase.tsx
-export interface TossPurchaseResult {
-export function TossPurchase({
-
-// src/components/TossRewardAd.tsx
-export function TossRewardAd({
-
-// src/domain/diagnosis.ts
-export interface BizStatus {
-export function summarizeYear(records: MonthlyIncomeRecord[], year: number): AnnualSummary | null {
-export function estimatePremium(totalAnnual: number, rules: RuleSet): PremiumEstimate {
-export function diagnose(summary: AnnualSummary, hasBiz: BizStatus, rules: RuleSet): DiagnosisResult {
-export function findDropMonth(
-export function maxSafeSideMonthly(
-export function isWorsened(prev: DiagnosisStatus | null, next: DiagnosisStatus): boolean {
-
-// src/domain/rules.ts
-export const RULES: RuleSet = {
-export const STATUS_LABEL: Record<DiagnosisStatus, string> = {
-export const DISCLAIMER_TEXT =
-export const REASON_TEXT: Record<DropReason, string> = {
-export const JUDGMENT_RULES: JUDGMENT_RULESFn = () => ({
-export function buildRuleDescriptions(r
-
-## Memory Index (자동 학습 — 힌트로만 사용, 실제 코드 확인 필수)
-
-Available topics: deploy(4), general(12), testing(1), ui(3)
-
-Key lessons (verify against actual code before applying):
-- [general] 화면·라우팅 등 소비자 모듈은 그것이 import하는 생산자 모듈이 병합된 뒤에만 병합하고, 순서를 지킬 수 없으면 소비자 병합과 동시에 최소 플레이스홀더를 만들어 매 병합 직후 타입체크와 빌드가 항상 통과하도록 유지하라. (60% · 타 앱 1회 — 맹신 금지)
-- [general] 전역 라우팅·탭바·Provider 배선은 개별 화면보다 먼저(초반 20% 안에) 완료하고 미구현 화면은 스텁 라우트로 연결해, 시간 예산이 소진돼도 앱이 항상 실행 가능한 상태를 유지하라. (60% · 타 앱 1회 — 맹신 금지)
-- [general] 저장·데이터 접근 등 기반 계층 패킷은 이를 import 하는 화면 패킷보다 반드시 먼저 완료·병합하고, 미완료면 상위 화면 패킷 병합을 차단하라 — 빈 기반 모듈 하나가 전 라우트 스모크를 무너뜨린다. (60% · 타 앱 1회 — 맹신 금지)
-- [general] 외부에서 들어온 모든 값(라우터 state, 로컬 저장소, 부분 입력 폼)은 사용 직전에 배열·객체 기본값으로 정규화하고, 테이블/맵 조회 결과는 존재 확인 후에만 하위 속성이나 length에 접근하라. (60% · 타 앱 1회 — 맹신 금지)
-- [general] 의존 그래프 최하층의 타입·계약 파일은 런타임 코드 0줄의 순수 선언으로 가장 먼저 단독 타입체크를 통과시키고, 파일 생성은 셸 명령이 아닌 허용된 편집 도구로만 하게 강제하라. (60% · 타 앱 1회 — 맹신 금지)
+- 0006: 폼 검증 + Route State 파서 + AppDataContext + 테스트 하네스 (files: src/lib/validation.ts, src/lib/routeState.ts, src/state/AppDataContext.tsx, src/test/renderWithProviders.tsx, src/lib/__tests__/dataLayer.test.tsx)
