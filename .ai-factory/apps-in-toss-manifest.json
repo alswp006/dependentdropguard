@@ -1,0 +1,24 @@
+{
+  "koreanName": "부업가디언",
+  "englishName": "SideGuard",
+  "appName": "side-guard",
+  "ageRating": "만 19세 이상",
+  "supportEmail": "support@aifactory.dev",
+  "category": {
+    "primary": "금융"
+  },
+  "subtitle": "피부양자 자격을 매달 진단",
+  "description": "본업과 부업 소득을 입력하면 건강보험 피부양자 자격 유지 여부를 즉시 진단받습니다. 자격 탈락 시 예상 보험료를 확인하고, 매달 소득 변동을 추적하며 지역가입자 전환에 대비할 수 있습니다. 불안정한 부업 소득 때문에 보험 자격을 잃지 않도록 매달 체크해보세요.",
+  "searchKeywords": [
+    "부업",
+    "건강보험",
+    "피부양자",
+    "N잡",
+    "소득 관리",
+    "보험료 계산",
+    "프리랜서",
+    "지역가입자",
+    "소득 추적",
+    "부업 소득"
+  ]
+}
