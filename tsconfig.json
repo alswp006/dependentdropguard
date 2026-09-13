@@ -19,6 +19,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
     "paths": {
       "@/*": [
         "./src/*"
@@ -28,9 +29,5 @@
   },
   "include": [
     "src"
-  ],
-  "exclude": [
-    "src/**/__*.ts",
-    "src/**/__*.tsx"
   ]
 }
