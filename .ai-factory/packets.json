@@ -1,0 +1,708 @@
+[
+  {
+    "id": "0001",
+    "title": "엔티티 타입 + RouteState 계약 정의",
+    "epic": "Epic 1. TypeScript 타입",
+    "task": {
+      "description": "SPEC Data Models의 타입(StorageError, StorageResult, UserProfile, MonthlyIncomeRecord, RecordsStore, AppSettings, ReportUnlock, RuleSet, DiagnosisStatus, DropReason, AnnualSummary, DiagnosisResult, PremiumEstimate)을 글자 그대로 src/lib/types.ts에 옮긴다. 라우트별 state 타입과 RouteState 맵도 여기서 정의한다. src/types/navigation.ts는 re-export만 한다. 런타임 코드는 0줄이다.",
+      "acceptance_criteria": [
+        "npx tsc --noEmit이 에러 0개로 통과한다",
+        "src/lib/types.ts와 src/types/navigation.ts에서 function/const/let/var/class 선언을 grep하면 0줄이다(type·interface·export type만 있다)",
+        "RouteState의 키는 정확히 '/', '/profile', '/record', '/history', '/report', '/simulate', '/settings' 7개다. RecordState는 { month: string; from: 'home' | 'history' } | null, '/settings' 값은 undefined다",
+        "DiagnosisResult에는 year, status, reasons, summary, marginToDrop, overAmount:number, premium:PremiumEstimate가 있다. PremiumEstimate는 monthlyBase, healthMonthly, ltcMonthly, totalMonthly, totalAnnual(모두 number)을 가진다",
+        "navigation.ts의 HomeState, ProfileState, RecordState, HistoryState, ReportState, SimulateState, RouteState를 import하는 코드와 src/lib/types에서 import하는 코드가 모두 컴파일된다"
+      ]
+    },
+    "covers": [
+      "F1-AC1",
+      "F1-AC2",
+      "F1-AC3",
+      "F1-AC4",
+      "F1-AC5",
+      "F1-AC6",
+      "F1-AC7",
+      "F1-AC8"
+    ],
+    "files": [
+      "src/lib/types.ts",
+      "src/types/navigation.ts"
+    ],
+    "definition_of_done": [
+      "npx tsc --noEmit 통과",
+      "두 파일에 런타임 선언 0개",
+      "SPEC Data Models 필드명과 1:1로 일치(원문이 잘린 DiagnosisResult는 위 AC의 필드를 최소한으로 포함)"
+    ],
+    "depends_on": [],
+    "db_schema": "UserProfile{version:1;hasBusinessRegistration:boolean;createdAt:string;updatedAt:string} → 'ddg:profile:v1' | RecordsStore{version:1;items:MonthlyIncomeRecord[]} → 'ddg:records:v1' | AppSettings{version:1;reminderEnabled:boolean;dismissedReminderMonth:string|null} → 'ddg:settings:v1' | ReportUnlock{version:1;unlockedMonth:string} → 'ddg:reportUnlock:v1'",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": ""
+  },
+  {
+    "id": "0002",
+    "title": "판정 규칙 상수 + 표시 포맷 유틸",
+    "epic": "Epic 2. Data Layer",
+    "task": {
+      "description": "src/domain/rules.ts에 RULES, STATUS_LABEL, REASON_TEXT, DISCLAIMER_TEXT, buildRuleDescriptions(rules)를 만든다. 비율은 bp/100을 소수 둘째 자리까지 표시한다. src/utils/format.ts에는 formatWon, formatMonthLabel(month, now), formatYearMonth, toMonthKey, prevMonthKey, isValidMonthKey, selectableMonths, formatAmountInput, parseAmountInput을 만든다. 날짜 함수는 모두 now: Date를 인자로 받는다.",
+      "acceptance_criteria": [
+        "formatWon(20400000) === '20,400,000원'이다. 2026-09-14 기준으로 formatMonthLabel('2026-08', now) === '8월', formatMonthLabel('2025-12', now) === '2025년 12월'이다",
+        "prevMonthKey(new Date('2027-01-05T09:00:00+09:00')) === '2026-12'이다. isValidMonthKey('2026-13') === false, isValidMonthKey('2026-01') === true이다",
+        "selectableMonths(2026-09-14)는 길이가 21이고 [0] === '2026-09', [20] === '2025-01'이다",
+        "formatAmountInput('12a3') === '123', formatAmountInput('1000000') === '1,000,000'이다. parseAmountInput('1,000') === 1000, parseAmountInput('') === null이다",
+        "STATUS_LABEL은 SAFE '안전', WARNING '주의', DROP '탈락 위험'이다. REASON_TEXT.TOTAL_INCOME === '연간 합산 소득이 2,000만원을 넘어요'이다. buildRuleDescriptions(RULES)는 F7-AC4의 6개 문구와 순서까지 같다. rules.ts의 문구 문자열 안에 '2,000'·'500'·'7.19' 같은 숫자 리터럴이 직접 들어가지 않는다(REASON_TEXT 포함, RULES 값으로 만든다)"
+      ]
+    },
+    "covers": [
+      "F7-AC4",
+      "F2-AC7",
+      "F5-AC6",
+      "F7-AC8"
+    ],
+    "files": [
+      "src/domain/rules.ts",
+      "src/utils/format.ts",
+      "src/utils/__tests__/format.test.ts",
+      "src/domain/__tests__/rules.test.ts"
+    ],
+    "definition_of_done": [
+      "vitest의 format.test.ts와 rules.test.ts 전부 통과",
+      "vi.setSystemTime(new Date('2026-09-14T09:00:00+09:00'))으로 시각 고정",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [],
+    "db_schema": "RULES: RuleSet = { year:2026, totalIncomeLimit:20_000_000, sideIncomeLimitUnregistered:5_000_000, sideIncomeLimitRegistered:0, warningRatioBp:8000, healthRateBp:719, ltcRatioBp:1314 } (저장하지 않는 상수)",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": ""
+  },
+  {
+    "id": "0003",
+    "title": "안전 저장소 코어 + 프로필·설정·리포트 열람 저장",
+    "epic": "Epic 2. Data Layer",
+    "task": {
+      "description": "src/storage/safeStorage.ts에 readJson(key, validate, fallback), writeJson(key, value): StorageResult<null>, removeKeys(keys)를 만든다. 예외를 밖으로 던지지 않고 console.*도 호출하지 않는다. 그 위에 profile.ts(getProfile/saveProfile), settings.ts(getSettings/saveSettings(patch)), reportUnlock.ts(getReportUnlock/saveReportUnlock)를 만든다. 저장은 '읽기 → 계산 → setItem 1회' 순서로 한다.",
+      "acceptance_criteria": [
+        "빈 localStorage에서 getProfile() === null, getReportUnlock() === null이다. getSettings()는 { version:1, reminderEnabled:true, dismissedReminderMonth:null }과 deepEqual이다",
+        "localStorage['ddg:settings:v1'] = '\"abc\"'이면 getSettings()는 기본값을 반환하고, console.error spy 호출은 0회다",
+        "setItem이 new DOMException('', 'QuotaExceededError')를 던지면 saveSettings({reminderEnabled:false})는 {ok:false, error:'STORAGE_FULL'}이다. code===22인 예외도 STORAGE_FULL이고, 일반 Error는 {ok:false, error:'STORAGE_UNAVAILABLE'}이다",
+        "saveProfile({hasBusinessRegistration:true})를 두 번 호출하면 createdAt은 첫 저장값 그대로이고 updatedAt만 바뀐다",
+        "saveReportUnlock('2026-09') 후 getReportUnlock()은 {version:1, unlockedMonth:'2026-09'}이다"
+      ]
+    },
+    "covers": [
+      "F1-AC6",
+      "F1-AC7",
+      "F1-AC8"
+    ],
+    "files": [
+      "src/storage/safeStorage.ts",
+      "src/storage/profile.ts",
+      "src/storage/settings.ts",
+      "src/storage/reportUnlock.ts",
+      "src/storage/__tests__/core.test.ts"
+    ],
+    "definition_of_done": [
+      "core.test.ts 전부 통과",
+      "storage 폴더에서 console. grep 0건",
+      "템플릿 localStorage 헬퍼가 console.error를 호출하거나 예외를 삼키면 window.localStorage를 직접 사용"
+    ],
+    "depends_on": [],
+    "db_schema": "UserProfile → 'ddg:profile:v1' (기본 null) | AppSettings → 'ddg:settings:v1' (기본 {version:1,reminderEnabled:true,dismissedReminderMonth:null}) | ReportUnlock → 'ddg:reportUnlock:v1' (기본 null)",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": ""
+  },
+  {
+    "id": "0004",
+    "title": "월별 소득 기록 저장소(CRUD+검증) + 전체 삭제",
+    "epic": "Epic 2. Data Layer",
+    "task": {
+      "description": "src/storage/records.ts에 getRecords, getRecord, upsertRecord, deleteRecord를 만든다. upsert는 month마다 1건만 남기고 month 오름차순으로 정렬한다. 입력이 잘못되면 INVALID_INPUT을 반환하고 setItem을 호출하지 않는다. src/storage/clearAll.ts의 clearAllData()는 safeStorage.removeKeys로 ddg:* 키 4개를 지운다.",
+      "acceptance_criteria": [
+        "F1-AC1: upsertRecord({month:'2026-08', salaryIncome:0, sideIncome:200000, otherIncome:0, memo:''}) 후 getRecords() 길이는 1, [0].sideIncome === 200000이고, JSON.parse(localStorage['ddg:records:v1']).version === 1이다",
+        "F1-AC2: 이어서 '2026-01'을 upsert하고 '2026-08'을 sideIncome 300000으로 다시 upsert하면 길이는 2, month 순서는 ['2026-01','2026-08'], getRecord('2026-08').sideIncome === 300000이다",
+        "month '2026-13', 금액 1.5, -1, 1_000_000_001, 31자 memo는 각각 {ok:false, error:'INVALID_INPUT'}을 반환하고, setItem spy 호출은 0회다",
+        "저장값이 '{broken'이나 'null'이거나 items가 배열이 아니면 getRecords()는 []를 반환하고 console.error는 0회다. 빈 저장소에서도 []다",
+        "ddg:* 키 4개를 넣고 clearAllData()를 호출하면 {ok:true}이고 4개 모두 getItem === null이다. removeItem이 throw하면 {ok:false, error:'STORAGE_UNAVAILABLE'}이다"
+      ]
+    },
+    "covers": [
+      "F1-AC1",
+      "F1-AC2",
+      "F1-AC6",
+      "F1-AC7",
+      "F7-AC3"
+    ],
+    "files": [
+      "src/storage/records.ts",
+      "src/storage/clearAll.ts",
+      "src/storage/__tests__/records.test.ts"
+    ],
+    "definition_of_done": [
+      "records.test.ts 전부 통과",
+      "deleteRecord('2026-08') 후 getRecord('2026-08') === null",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [
+      "0003"
+    ],
+    "db_schema": "interface MonthlyIncomeRecord { month:string('YYYY-MM'); salaryIncome:number; sideIncome:number; otherIncome:number; memo:string(0~30); updatedAt:string } / RecordsStore { version:1; items: MonthlyIncomeRecord[] (month 오름차순) } → localStorage key: 'ddg:records:v1'",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": ""
+  },
+  {
+    "id": "0005",
+    "title": "진단 엔진: 연 환산·판정·보험료·시뮬레이션 순수 함수",
+    "epic": "Epic 2. Data Layer",
+    "task": {
+      "description": "src/domain/diagnosis.ts에 summarizeYear(records, year)(0건이면 null), diagnose(summary, hasBiz, rules), estimatePremium(totalAnnual, rules), findDropMonth, maxSafeSideMonthly, isWorsened(prev, next)를 만든다. src/domain/simulation.ts에는 computeSimulation을 만든다. 계산은 SPEC §5 정수 연산만 쓰고, 문구 숫자는 RULES에서 가져온다.",
+      "acceptance_criteria": [
+        "2026-01, 2026-02 기록이 각각 salary 1,700,000이고 사업자 미등록이면 totalAnnual 20,400,000, status 'DROP', reasons ['TOTAL_INCOME'], overAmount 400,000이다. premium은 healthMonthly 122,230, ltcMonthly 16,060, totalMonthly 138,290, totalAnnual 1,659,480이다. estimatePremium(14_400_000).totalMonthly === 97,610이다",
+        "미등록 경계값: total 20,000,000 → WARNING, side 5,000,000 → WARNING, side 5,000,001 → DROP(SIDE_INCOME_UNREGISTERED), total 15,999,999·side 3,999,999 → SAFE, total 22,000,000·side 6,000,000 → reasons 2개와 overAmount 2,000,000이다. 등록 상태에서 side 1이면 DROP(SIDE_INCOME_REGISTERED), marginToDrop 0이다. 미등록 total 10,000,000·side 1,000,000이면 marginToDrop 4,000,000이다",
+        "연 환산: 2026-01 side 100,001과 2026-02 side 0이면 sideAnnual === 600,006(Math.floor(sum×12/n))이다. 2025년 기록은 2026년 합산에서 빠진다",
+        "maxSafeSideMonthly: 미등록·salaryAnnual 0이면 416,666, salaryAnnual 19,200,000이면 66,666, 사업자 등록이면 0이다. findDropMonth는 미입력 달을 항목별 Math.floor(입력 달 합계/n)으로 채워 누적 합산이 DROP 기준을 처음 넘는 'YYYY-MM'을 반환하고, 넘지 않으면 null을 반환한다",
+        "isWorsened('SAFE','WARNING') === true, ('DROP','WARNING') === false, (null,'DROP') === false이다. computeSimulation({baseSummary:null, baseHasBiz:false, salaryMonthly:1_600_000, sideMonthly:100_000, simHasBiz:false})는 deltaSide 1,200,000, premiumAnnualDelta 1,659,480, netGain -459,480이다"
+      ]
+    },
+    "covers": [
+      "F3",
+      "F4-AC4",
+      "F5-AC5",
+      "F6"
+    ],
+    "files": [
+      "src/domain/diagnosis.ts",
+      "src/domain/simulation.ts",
+      "src/domain/__tests__/diagnosis.test.ts",
+      "src/domain/__tests__/simulation.test.ts"
+    ],
+    "definition_of_done": [
+      "두 테스트 파일 전부 통과",
+      "계산 경로에 소수 결과를 만드는 나눗셈 뒤 Math.floor 누락 0건",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [
+      "0002"
+    ],
+    "db_schema": "저장 없음. computeSimulation 반환: { sim: DiagnosisResult; deltaSide:number; premiumAnnualDelta:number; netGain:number } (premium은 DROP일 때만 보험료로 계산하고, 아니면 0)",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": ""
+  },
+  {
+    "id": "0006",
+    "title": "폼 검증 + Route State 파서 + AppDataContext + 테스트 하네스",
+    "epic": "Epic 2. Data Layer",
+    "task": {
+      "description": "src/lib/validation.ts에 금액·메모·월 검증을 만든다. src/lib/routeState.ts에는 parseHomeState, parseProfileState, parseRecordState(state, now) → {month, from, futureRejected}, parseYearState를 만든다. src/state/AppDataContext.tsx에는 AppDataProvider와 useAppData를 만든다. 액션이 ok일 때만 메모리 상태를 갱신한다. src/test/renderWithProviders.tsx는 MemoryRouter+Provider로 감싸서 렌더한다.",
+      "acceptance_criteria": [
+        "validateAmount('1,000,000,001') === '월 소득은 10억원 이하로 입력해주세요', validateAmount('1,000,000,000') === null이다. 메모 31자는 오류 문자열, 30자는 null이다",
+        "2026-09-14 기준: parseRecordState({month:'2026-10', from:'home'})는 futureRejected true이고 month는 prevMonthKey(now) '2026-08'이다. parseRecordState(null)은 {month:'2026-08', from:'home', futureRejected:false}이다. parseRecordState({month:'2024-12', from:'x'})는 month '2026-08', from 'home'이다",
+        "parseYearState({year:'2026'})와 parseYearState(undefined)는 모두 2026이다. parseYearState({year:2025})는 2025이다. parseProfileState({mode:'edit'}).mode === 'edit', parseProfileState(null).mode === 'onboarding'이다",
+        "useAppData().upsertRecord가 {ok:true}를 반환하면 같은 렌더 사이클 뒤 records에 반영된다. setItem이 QuotaExceededError를 던지면 {ok:false, error:'STORAGE_FULL'}을 반환하고 records 길이는 그대로다",
+        "renderWithProviders(<X/>, {route:'/record', state:{month:'2026-08', from:'home'}})로 렌더하면 useLocation().state가 그 값을 반환한다"
+      ]
+    },
+    "covers": [
+      "F2-AC7",
+      "F8"
+    ],
+    "files": [
+      "src/lib/validation.ts",
+      "src/lib/routeState.ts",
+      "src/state/AppDataContext.tsx",
+      "src/test/renderWithProviders.tsx",
+      "src/lib/__tests__/dataLayer.test.tsx"
+    ],
+    "definition_of_done": [
+      "dataLayer.test.tsx 전부 통과",
+      "useLocation().state as X 형태의 직접 구조분해 0건. 파서만 사용",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [
+      "0003",
+      "0004",
+      "0005"
+    ],
+    "db_schema": "useAppData(): { profile: UserProfile|null; records: MonthlyIncomeRecord[]; settings: AppSettings; reportUnlock: ReportUnlock|null; saveProfile; upsertRecord; deleteRecord; saveSettings; saveReportUnlock; clearAll } — 모든 액션은 StorageResult를 반환",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": ""
+  },
+  {
+    "id": "0007",
+    "title": "ProfilePage — 사업자등록 여부 온보딩/수정 (/profile)",
+    "epic": "Epic 3. Core UI Pages",
+    "task": {
+      "description": "src/pages/Profile.tsx를 만든다. parseProfileState로 모드를 정하고 부업 사업자등록 여부(있음/없음)를 고르게 한다. onboarding은 저장 후 '/'로 replace 이동하고, edit는 기존 값을 미리 선택한 상태로 열어 저장 후 '/settings'로 이동한다. 저장에 실패하면 Toast를 띄우고 이동하지 않는다. 탭바는 숨긴다. ScreenScaffold로 감싼다.",
+      "acceptance_criteria": [
+        "profile이 없는 상태에서 onboarding 모드로 열면 선택 전 SubmitFooter 버튼이 disabled다. '없음'을 고르고 저장하면 JSON.parse(localStorage['ddg:profile:v1']).hasBusinessRegistration === false이고 pathname은 '/'다",
+        "edit 모드이고 기존 profile이 true면 '있음'이 선택된 상태로 렌더된다. Top 제목 텍스트는 '사업자등록 여부'다. '없음'으로 바꿔 저장하면 createdAt은 그대로, pathname은 '/settings'다",
+        "setItem이 QuotaExceededError를 던지면 pathname은 '/profile'에 머물고 Toast가 화면에 보인다",
+        "저장 버튼을 누르면 generateHapticFeedback({type:'success'})가 1회 호출된다(mock spy)"
+      ]
+    },
+    "covers": [
+      "F2",
+      "F7"
+    ],
+    "files": [
+      "src/pages/Profile.tsx",
+      "src/pages/__tests__/Profile.test.tsx"
+    ],
+    "definition_of_done": [
+      "Profile.test.tsx 통과",
+      "인라인 padding/margin 0건, HEX 0건",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [],
+    "db_schema": "UserProfile → 'ddg:profile:v1'",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "ScreenScaffold > TDS Top(title: onboarding은 SPEC S2 원문 제목, edit는 '사업자등록 여부') > Spacing size={16} > Paragraph.Text typography='t6' color='secondary' 안내 문구 > Spacing size={8} > ListRow 2개(있음/없음, ListRow.Texts type='1RowTypeA', 선택된 행 right에 체크 표시 Asset. 행 높이 44px 이상, 탭하면 haptic tickWeak) > Spacing size={24} > Paragraph.Text typography='t7' color='tertiary' {DISCLAIMER_TEXT} > SubmitFooter(버튼 문구는 SPEC S2 원문. 원문이 없으면 onboarding '시작하기', edit '저장하기'. 미선택이면 disabled). States: Loading 없음 / Error: 저장 실패 시 TDS Toast(position='top') '저장하지 못했어요. 다시 시도해주세요' / 탭바 숨김"
+  },
+  {
+    "id": "0008",
+    "title": "RecordPage 부품 — 월 선택 BottomSheet",
+    "epic": "Epic 3. Core UI Pages",
+    "task": {
+      "description": "src/components/record/MonthPickerSheet.tsx를 만든다. props는 {open, value, now, recordedMonths, onSelect, onClose}다. selectableMonths(now)를 내림차순 ListRow로 보여주고, 입력한 달에는 '입력함' 보조 문구를, 선택한 달에는 체크를 표시한다. 행을 탭하면 onSelect(month)와 onClose를 차례로 호출한다. BottomSheet의 open/onClose props 이름은 .d.ts에서 확인한다.",
+      "acceptance_criteria": [
+        "now 2026-09-14, open=true면 월 행이 21개이고 첫 행 텍스트는 '9월', 마지막 행은 '2025년 1월'이다",
+        "recordedMonths=['2026-08']이면 '8월' 행에만 '입력함'이 보이고 다른 행에는 0개다",
+        "'8월' 행을 클릭하면 onSelect가 '2026-08' 인자로 1회, onClose가 1회 호출된다",
+        "'2026-10' 같은 미래 달 행은 렌더되지 않는다"
+      ]
+    },
+    "covers": [
+      "F2"
+    ],
+    "files": [
+      "src/components/record/MonthPickerSheet.tsx",
+      "src/components/record/__tests__/MonthPickerSheet.test.tsx"
+    ],
+    "definition_of_done": [
+      "MonthPickerSheet.test.tsx 통과",
+      "TDS BottomSheet, ListRow만 사용하고 HEX 0건",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [],
+    "db_schema": "",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "TDS BottomSheet(header 제목 '어느 달 소득인가요?' — SPEC S3 원문이 있으면 원문 사용) > ListRow × 21(ListRow.Texts type='2RowTypeA' top={formatMonthLabel(month, now)} bottom={입력했으면 '입력함', 아니면 생략}, right: 선택된 달이면 체크 Asset) — 행 높이 44px 이상. 스크롤은 BottomSheet 내장 스크롤 사용. 탭하면 haptic tickWeak"
+  },
+  {
+    "id": "0009",
+    "title": "RecordPage 부품 — 자격 상태 변화 AlertDialog",
+    "epic": "Epic 3. Core UI Pages",
+    "task": {
+      "description": "src/components/record/StatusChangeDialog.tsx를 만든다. props는 {open, prev, next, reasons, onClose, onViewReport}다. 저장 후 상태가 나빠졌을 때 쓰는 AlertDialog로, 제목에 STATUS_LABEL로 이전 상태와 새 상태를 보여주고 description에 REASON_TEXT 사유를 넣는다. 버튼은 '닫기'와 '리포트 보기' 2개다. 2버튼 Fragment가 렌더되는지 TDS .d.ts로 확인한다.",
+      "acceptance_criteria": [
+        "prev='SAFE', next='DROP', reasons=['TOTAL_INCOME']이면 '안전', '탈락 위험', '연간 합산 소득이 2,000만원을 넘어요' 텍스트가 모두 보인다",
+        "'닫기' 버튼 클릭 시 onClose 1회, onViewReport 0회",
+        "'리포트 보기' 버튼 클릭 시 onViewReport 1회",
+        "컴포넌트 소스에 '취소' 문자열 0건. open=false면 제목 텍스트가 DOM에 없음"
+      ]
+    },
+    "covers": [
+      "F5-AC5"
+    ],
+    "files": [
+      "src/components/record/StatusChangeDialog.tsx",
+      "src/components/record/__tests__/StatusChangeDialog.test.tsx"
+    ],
+    "definition_of_done": [
+      "StatusChangeDialog.test.tsx 통과",
+      "문구 해요체, '~시' 표현 0건",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [],
+    "db_schema": "",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "<AlertDialog open={open} title={`피부양자 상태가 '${STATUS_LABEL[prev]}'에서 '${STATUS_LABEL[next]}'(으)로 바뀌었어요`(SPEC S3 원문이 있으면 원문 사용)} description={reasons.map(r => REASON_TEXT[r]).join('\\n')} onClose={onClose} alertButton={<><AlertDialog.AlertButton onClick={onClose}>닫기</AlertDialog.AlertButton><AlertDialog.AlertButton onClick={onViewReport}>리포트 보기</AlertDialog.AlertButton></>} />. 2버튼이 렌더되지 않으면 사전에 없는 ConfirmDialog 등을 쓰지 말고 TODO 주석으로 표시"
+  },
+  {
+    "id": "0010",
+    "title": "RecordPage — 월 소득 입력 폼·저장·상태 변화 연결 (/record)",
+    "epic": "Epic 3. Core UI Pages",
+    "task": {
+      "description": "src/pages/Record.tsx를 만든다. parseRecordState로 대상 월을 정하고, 본업·부업·기타 금액(콤마 포맷)과 메모(30자)를 입력받는다. 기존 기록이 있으면 미리 채운다. 저장은 중복 클릭을 막는다. 저장 후 상태가 나빠지면 StatusChangeDialog를 띄우고, 아니면 from에 따라 '/' 또는 '/history'로 {savedMonth}를 넘기며 이동한다. 그 해 기존 기록이 0건이면 다이얼로그를 띄우지 않는다. 탭바는 숨긴다.",
+      "acceptance_criteria": [
+        "state {month:'2026-08', from:'home'}에서 본업에 '2000000'을 입력하면 필드 값이 '2,000,000'이 된다. 저장하면 getRecord('2026-08').salaryIncome === 2000000이고, pathname은 '/', location.state.savedMonth === '2026-08'이다. from:'history'면 pathname이 '/history'다",
+        "'1000000001'을 입력하면 help '월 소득은 10억원 이하로 입력해주세요'가 보이고, 저장해도 'ddg:records:v1' setItem은 0회다",
+        "저장 버튼을 빠르게 2번 클릭해도 'ddg:records:v1' setItem 호출은 1회다",
+        "미등록 profile에 2026-01 salary 1,000,000(SAFE)이 있을 때 2026-08에 salary 30,000,000을 저장하면 '탈락 위험'이 들어간 다이얼로그가 보이고, '리포트 보기'를 누르면 pathname은 '/report'다. 2026년 기록이 0건일 때 같은 금액을 저장하면 다이얼로그 없이 바로 '/'로 이동한다",
+        "state {month:'2026-10'}(futureRejected)이면 '8월'이 선택된 채 Toast가 보인다. setItem이 QuotaExceededError를 던지면 '/record'에 머물고 Toast가 보인다"
+      ]
+    },
+    "covers": [
+      "F2",
+      "F5-AC5",
+      "F1-AC8"
+    ],
+    "files": [
+      "src/pages/Record.tsx",
+      "src/pages/__tests__/Record.test.tsx"
+    ],
+    "definition_of_done": [
+      "Record.test.tsx 통과(vi.setSystemTime 2026-09-14, haptic mock)",
+      "navigate state에 satisfies RouteState['/'] 또는 RouteState['/history'] 사용",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [
+      "0008",
+      "0009"
+    ],
+    "db_schema": "MonthlyIncomeRecord → 'ddg:records:v1' (upsertRecord는 useAppData 경유)",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "ScreenScaffold > Top(title '월 소득 입력') > Spacing 16 > ListRow(onClick: MonthPickerSheet 열기, ListRow.Texts type='1RowTypeA' top='입력할 달', right=Paragraph.Text t6 secondary {formatMonthLabel}) > Spacing 16 > TextField variant='box' label='본업 소득' placeholder='0' inputMode='numeric' hasError help > Spacing 12 > TextField label='부업·프리랜서 소득' 동일 > Spacing 12 > TextField label='기타 소득' 동일 > Spacing 12 > TextField label='메모' maxLength 30 help '{n}/30' > Spacing 24 > Paragraph.Text t7 tertiary {DISCLAIMER_TEXT} > SubmitFooter '저장하기'(오류가 있거나 저장 중이면 disabled, 클릭 시 haptic success). MonthPickerSheet(0008), StatusChangeDialog(0009) 사용. States: Loading 없음 / Error: 필드 hasError와 help, 저장 실패 시 Toast(position='top') / 폼 오류 색상은 TDS hasError 기본값 사용(HEX 금지) / 키보드: inputMode='numeric'. 탭바 숨김"
+  },
+  {
+    "id": "0011",
+    "title": "HomePage 부품 — 월간 입력 리마인더 배너",
+    "epic": "Epic 3. Core UI Pages",
+    "task": {
+      "description": "src/components/home/ReminderBanner.tsx에 순수 함수 shouldShowReminder(settings, records, now)와 배너 컴포넌트 ReminderBanner({month, now, onRecord, onDismiss})를 만든다. 대상 월은 prevMonthKey(now)다. 리마인더가 켜져 있고, 그 달 기록이 없고, 그 달을 닫은 적이 없을 때만 true를 반환한다. 배너에는 입력 버튼과 닫기 버튼이 있다.",
+      "acceptance_criteria": [
+        "now 2026-09-14, reminderEnabled true, 2026-08 기록 없음, dismissedReminderMonth null → true. dismissed '2026-08' → false. 2026-08 기록 있음 → false. reminderEnabled false → false",
+        "now 2026-10-01이고 dismissed가 '2026-08'이면 대상 월은 '2026-09'이므로 true다",
+        "ReminderBanner month='2026-08'을 렌더하면 '8월'이 들어간 문구가 보인다. '입력하기'를 클릭하면 onRecord가 1회, '닫기'를 클릭하면 onDismiss가 1회 호출된다",
+        "두 버튼의 렌더 높이 스타일/컴포넌트가 44px 이상(TDS Button size 기본값 이상 사용)"
+      ]
+    },
+    "covers": [
+      "F5-AC6"
+    ],
+    "files": [
+      "src/components/home/ReminderBanner.tsx",
+      "src/components/home/__tests__/ReminderBanner.test.tsx"
+    ],
+    "definition_of_done": [
+      "ReminderBanner.test.tsx 통과",
+      "HEX 0건, 인라인 padding 0건",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [],
+    "db_schema": "AppSettings.dismissedReminderMonth 읽기 전용(저장은 호출자가 함)",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "템플릿 Card > Asset.ContentIcon(달력류 CDN 아이콘) + Paragraph.Text typography='t5' `${formatMonthLabel(month, now)} 소득을 아직 입력하지 않았어요`(SPEC S1 원문 우선) > Spacing 12 > flex row(gap 8) [Button size='medium' variant='weak' '닫기' | Button size='medium' '입력하기'] — 이모지 금지, 버튼 탭 haptic tickWeak"
+  },
+  {
+    "id": "0012",
+    "title": "HomePage — 진단 대시보드·빈 상태·저장 Toast·배너 광고 (/)",
+    "epic": "Epic 3. Core UI Pages",
+    "task": {
+      "description": "src/pages/Home.tsx를 만든다. profile이 없으면 '/profile'(mode:'onboarding')로 replace 이동한다. 올해 기록이 0건이면 빈 상태를 보여준다. 기록이 있으면 SummaryHero(연 환산 합계), 상태 Badge, 여유분·초과분, DROP 사유, 리포트·입력 CTA를 보여준다. 리마인더 배너, savedMonth Toast, AdSlot을 붙이고 탭바 공간을 비워 둔다.",
+      "acceptance_criteria": [
+        "profile null이면 pathname이 '/profile'이고 state.mode === 'onboarding'이다",
+        "미등록 profile에 2026-01·2026-02 salary 각 1,700,000이면 '탈락 위험', '20,400,000원', '연간 합산 소득이 2,000만원을 넘어요'가 보인다. '상세 리포트 보기'를 클릭하면 pathname '/report', state {year:2026}이다",
+        "profile이 있고 2026년 기록이 0건이면 빈 상태 문구와 '소득 입력하기' 버튼이 보인다. 클릭하면 pathname '/record', state {month:'2026-08', from:'home'}이다",
+        "state {savedMonth:'2026-08'}로 진입하면 '8월 소득을 저장했어요' Toast가 1회 보인다. 리마인더 배너에서 '닫기'를 누르면 localStorage settings.dismissedReminderMonth === '2026-08'이고 배너가 사라진다",
+        "VITE_TOSS_AD_GROUP_ID가 있으면 data-testid='home-ad-slot'이 1개 렌더되고, 없으면 0개다(AdSlot mock)"
+      ]
+    },
+    "covers": [
+      "F3",
+      "F5",
+      "F2"
+    ],
+    "files": [
+      "src/pages/Home.tsx",
+      "src/pages/__tests__/Home.test.tsx"
+    ],
+    "definition_of_done": [
+      "Home.test.tsx 통과",
+      "useLocation().state는 parseHomeState로만 읽음",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [
+      "0011"
+    ],
+    "db_schema": "읽기: profile, records, settings / 쓰기: saveSettings({dismissedReminderMonth})",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "ScreenScaffold > Top(title '피부양자 지킴이') > {shouldShowReminder && ReminderBanner + Spacing 16} > 템플릿 SummaryHero(label '올해 예상 연 소득', value totalAnnual CountUp, 보조 `${recordedMonths}개월 기록 기준`) > Spacing 12 > TDS Badge {STATUS_LABEL[status]} > Spacing 8 > Paragraph.Text t5: SAFE/WARNING은 `탈락까지 ${formatWon(marginToDrop)} 남았어요`, DROP은 `기준보다 ${formatWon(overAmount)} 많아요` > DROP이면 reasons마다 ListRow(ListRow.Texts 1RowTypeA top=REASON_TEXT) > Spacing 24 > Button display='block' '상세 리포트 보기'(haptic success) > Spacing 8 > Button display='block' variant='weak' '소득 입력하기' > Spacing 24 > {AD_ID && <div data-testid='home-ad-slot'><AdSlot adGroupId={import.meta.env.VITE_TOSS_AD_GROUP_ID} /></div>} > Spacing 16 > Paragraph.Text t7 tertiary {DISCLAIMER_TEXT} > Spacing 32 ×3(FloatingTabBar 회피). States: Loading 없음 / Empty: Asset.ContentIcon + Paragraph.Text '아직 올해 입력한 소득이 없어요' + Button '소득 입력하기' / Error: 설정 저장 실패 시 Toast(position='top'). 문구는 SPEC S1 원문 우선"
+  },
+  {
+    "id": "0013",
+    "title": "ReportPage — 보상형 광고 게이트 상세 리포트 (/report)",
+    "epic": "Epic 3. Core UI Pages",
+    "task": {
+      "description": "src/pages/Report.tsx를 만든다. parseYearState로 연도를 정한다. 기록이 0건이면 빈 상태를 보여준다. reportUnlock.unlockedMonth가 이번 달이면 본문을 바로 보여주고, 아니면 TossRewardAd로 감싸고 보상이 끝나면 saveReportUnlock(이번 달)을 호출한다. 본문은 상태, 사유, 항목별 연 환산, 예상 보험료(월·연), 탈락 예상 월, 시뮬레이션 CTA, 면책 문구로 구성한다. 탭바는 숨긴다.",
+      "acceptance_criteria": [
+        "unlockedMonth '2026-09'이고 2026-01·02 salary 각 1,700,000(미등록)이면 광고 없이 '122,230원', '16,060원', '138,290원', '1,659,480원'이 보인다",
+        "2026-01 salary 1,200,000(SAFE)이고 unlock 상태면 월 예상 보험료 합계 '97,610원'이 보인다",
+        "unlockedMonth '2026-08'(지난달)이면 보험료 금액이 DOM에 없고 TossRewardAd mock이 렌더된다. mock의 보상 완료 콜백(템플릿 소스에서 확인한 prop 이름)을 실행하면 localStorage['ddg:reportUnlock:v1'].unlockedMonth === '2026-09'이고 금액이 보인다",
+        "'시뮬레이션 해보기' 버튼을 클릭하면 pathname '/simulate', state {year:2026}이다. 2026년 기록이 0건이면 빈 상태 CTA를 눌렀을 때 '/record'로 이동한다",
+        "광고 로드 실패 콜백이 실행되면 Error 문구와 '다시 시도' 버튼이 보이고, 앱은 크래시하지 않는다(console.error 0회)"
+      ]
+    },
+    "covers": [
+      "F4",
+      "F4-AC4"
+    ],
+    "files": [
+      "src/pages/Report.tsx",
+      "src/pages/__tests__/Report.test.tsx"
+    ],
+    "definition_of_done": [
+      "Report.test.tsx 통과(TossRewardAd·haptic mock)",
+      "TossRewardAd import 경로·props는 템플릿 소스 확인 후 사용, 재구현 0건",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [],
+    "db_schema": "ReportUnlock → 'ddg:reportUnlock:v1' (saveReportUnlock(toMonthKey(now)))",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "ScreenScaffold > Top(title `${year}년 상세 리포트`) > Spacing 16 > [unlocked ? Body : <TossRewardAd slotId={import.meta.env.VITE_TOSS_AD_SLOT_ID} {보상완료/실패 콜백}>{Body}</TossRewardAd>]. Body = TDS Badge {STATUS_LABEL} > Spacing 8 > reasons ListRow들 > Spacing 24 > Paragraph.Text t6 secondary '연 환산 소득' > ListRow ×4(본업/부업/기타/합계, right=Paragraph.Text t6 formatWon) > Spacing 24 > Paragraph.Text t6 secondary '피부양자에서 탈락하면 내는 예상 보험료' > ListRow ×4(건강보험료 월/장기요양보험료 월/합계 월/연간, right formatWon) > Paragraph.Text t7 tertiary '재산·자동차분은 제외한 소득분 추정치예요' > Spacing 16 > findDropMonth가 있으면 Paragraph.Text t5 `${formatMonthLabel} 무렵 기준을 넘을 수 있어요` > Spacing 24 > Button display='block' '시뮬레이션 해보기'(haptic success) > Spacing 16 > Paragraph.Text t7 tertiary {DISCLAIMER_TEXT}. t3 금액은 wordBreak keep-all wrapper. States: Loading: 광고 로딩 중 TDS Skeleton 또는 spinner / Empty: Asset.ContentIcon + '리포트를 만들 소득 기록이 없어요' + Button '소득 입력하기' / Error: '광고를 불러오지 못했어요' + Button '다시 시도'. 문구는 SPEC S5 원문 우선. 탭바 숨김"
+  },
+  {
+    "id": "0014",
+    "title": "HistoryPage — 연도 탭·월별 목록·누적·추이·삭제 (/history)",
+    "epic": "Epic 3. Core UI Pages",
+    "task": {
+      "description": "[부가] src/pages/History.tsx를 만든다. Tab으로 올해와 작년을 전환하고, 연도별 월 기록을 ListRow로 보여준다. 누적 실제 합계와 Sparkline 추이도 보여준다. 행을 탭하면 '/record'(from:'history')로 이동한다. 삭제 버튼을 누르면 AlertDialog에서 '닫기'/'삭제'를 고르게 하고, 삭제 후 Toast를 띄운다. savedMonth로 진입하면 그 연도 탭을 선택하고 Toast를 띄운다. AdSlot과 탭바 여백을 넣는다.",
+      "acceptance_criteria": [
+        "2026-01·2026-08·2025-12 기록이 있으면 기본 탭 '2026년'에 행 2개, '2025년' 탭에 행 1개('2025년 12월')가 보인다",
+        "2026-01 salary 1,000,000과 2026-08 side 500,000이면 누적 '1,500,000원'이 보인다. 기록이 2건 이상일 때만 Sparkline이 렌더된다",
+        "'8월' 행을 클릭하면 pathname '/record', state {month:'2026-08', from:'history'}이다",
+        "삭제 → AlertDialog에서 '닫기'를 누르면 기록 수가 유지되고, '삭제'를 누르면 getRecord('2026-08') === null, 행이 사라지고 Toast가 보인다",
+        "state {savedMonth:'2025-12'}로 진입하면 '2025년' 탭이 선택되어 있다. 기록 0건이면 빈 상태 CTA '소득 입력하기'가 보인다"
+      ]
+    },
+    "covers": [
+      "F5"
+    ],
+    "files": [
+      "src/pages/History.tsx",
+      "src/pages/__tests__/History.test.tsx"
+    ],
+    "definition_of_done": [
+      "History.test.tsx 통과",
+      "AlertDialog 버튼 문구에 '취소' 0건",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [],
+    "db_schema": "MonthlyIncomeRecord → 'ddg:records:v1' (deleteRecord)",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "ScreenScaffold > Top(title '기록') > TDS Tab(items `${now.year}년`, `${now.year-1}년`, 탭 전환 시 haptic tickWeak) > Spacing 16 > Paragraph.Text t6 secondary '누적 실제 소득' + Paragraph.Text t3 formatWon(actualTotal) (wordBreak keep-all) > Spacing 12 > 기록이 2건 이상이면 템플릿 Sparkline(values: 월별 합계 오름차순) > Spacing 16 > 월마다 ListRow(onClick → /record, ListRow.Texts type='2RowTypeA' top=formatMonthLabel bottom=`본업 ${formatWon} · 부업 ${formatWon}`, right=[Paragraph.Text t6 formatWon(합계) + Button size='small' variant='weak' '삭제'(stopPropagation)]) > Spacing 24 > {AD_ID && <div data-testid='history-ad-slot'><AdSlot adGroupId={import.meta.env.VITE_TOSS_AD_GROUP_ID} /></div>} > Spacing 32 ×3(FloatingTabBar 회피). AlertDialog title `${label} 기록을 삭제할까요?` alertButton=[닫기, 삭제]. Toast(position='top') '기록을 삭제했어요' / '{label} 소득을 저장했어요'. States: Loading 없음 / Empty: Asset.ContentIcon + '아직 입력한 소득이 없어요' + Button '소득 입력하기' / Error: 삭제 실패 시 Toast '삭제하지 못했어요'"
+  },
+  {
+    "id": "0015",
+    "title": "SimulatePage 부품 — 현재/시뮬레이션 비교 카드",
+    "epic": "Epic 3. Core UI Pages",
+    "task": {
+      "description": "[부가] src/components/simulate/CompareCard.tsx를 만든다. props는 {title: '현재' | '시뮬레이션', result: DiagnosisResult | null}이다. Blueprint대로 제목, 상태 Badge, 연 합계, 보험료 문구를 그린다. DROP이면 월 예상 보험료를, 아니면 '보험료 0원 (피부양자 유지)'를 표시한다. result가 null이면 '안전'과 '연 0원'을 표시한다. 360px에서 금액이 줄바꿈되게 한다.",
+      "acceptance_criteria": [
+        "DROP 결과(totalAnnual 20,400,000)를 넣으면 '탈락 위험', '연 20,400,000원', '월 예상 보험료 138,290원'이 보인다",
+        "SAFE 결과면 '보험료 0원 (피부양자 유지)'가 보이고 '월 예상 보험료' 텍스트는 0개다",
+        "result=null이면 '안전'과 '연 0원'이 보인다",
+        "루트에 data-testid='compare-card'가 있고 title 텍스트가 보인다"
+      ]
+    },
+    "covers": [
+      "F6"
+    ],
+    "files": [
+      "src/components/simulate/CompareCard.tsx",
+      "src/components/simulate/__tests__/CompareCard.test.tsx"
+    ],
+    "definition_of_done": [
+      "CompareCard.test.tsx 통과",
+      "HEX 0건, 인라인 padding 0건",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [],
+    "db_schema": "",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "<Card data-testid=\"compare-card\">\n    <Paragraph.Text typography=\"t6\" color=\"secondary\">{i===0 ? '현재' : '시뮬레이션'}</Paragraph.Text>\n    <Spacing size={8} /><Badge>{statusLabel}</Badge><Spacing size={8} />\n    <Paragraph.Text typography=\"t3\">{`연 ${formatWon(r.totalAnnual)}`}</Paragraph.Text>\n    <Spacing size={4} />\n    <Paragraph.Text typography=\"t7\" color=\"secondary\">\n      {r.status==='DROP' ? `월 예상 보험료 ${formatWon(r.premium.totalMonthly)}` : '보험료 0원 (피부양자 유지)'}</Paragraph.Text>\n  </Card>\n좁은 화면(360px): t3 금액은 줄바꿈 허용(wordBreak: 'keep-all' wrapper), 글자 크기 축소 금지. Card·Badge의 실제 import 경로와 props는 템플릿과 .d.ts에서 확인"
+  },
+  {
+    "id": "0016",
+    "title": "SimulatePage — 지역가입자 전환 시뮬레이션 (/simulate)",
+    "epic": "Epic 3. Core UI Pages",
+    "task": {
+      "description": "[부가] src/pages/Simulate.tsx를 만든다. 본업·부업 월 소득 입력, +50/100/200만원 Chip, 사업자등록 Switch(저장하지 않음)를 두고, CompareCard 2장, 최대 안전 부업 금액 문구, 순증가 문구, AdSlot을 붙인다. 입력할 때마다 computeSimulation으로 즉시 다시 계산한다. 10억원을 넘는 입력은 lastValid ref 값으로 계산한다.",
+      "acceptance_criteria": [
+        "기록 0건·미등록 profile로 진입하면 max-safe-side는 '부업은 월 416,666원까지 피부양자 유지가 가능해요'이고, net-gain-value는 '부업 소득을 늘려 비교해보세요'다",
+        "sim-side가 200,000일 때 '+50만원' Chip을 누르면 '700,000', 이어서 '+200만원'을 누르면 '2,700,000'이다(haptic tickWeak 2회)",
+        "기록 0건에서 sim-salary '1600000', sim-side '100000'을 입력하면 net-gain-value는 '부업으로 연 1,200,000원 더 벌어도 보험료 연 1,659,480원 때문에 오히려 연 459,480원 손해예요'이고 max-safe-side는 '부업은 월 66,666원까지 피부양자 유지가 가능해요'다",
+        "sim-side에 '1000000001'을 입력하면 help '월 소득은 10억원 이하로 입력해주세요'가 보이고, 시뮬레이션 카드 금액은 직전 유효값 그대로다",
+        "sim-biz-switch를 켜면 max-safe-side는 '사업자등록 시 부업 소득이 있으면 자격을 잃어요'이고, localStorage['ddg:profile:v1']은 전환 전과 문자열이 같다"
+      ]
+    },
+    "covers": [
+      "F6"
+    ],
+    "files": [
+      "src/pages/Simulate.tsx",
+      "src/pages/__tests__/Simulate.test.tsx"
+    ],
+    "definition_of_done": [
+      "Simulate.test.tsx 통과",
+      "parseYearState로만 state 읽음, saveProfile 호출 0건",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [
+      "0015"
+    ],
+    "db_schema": "읽기 전용: profile, records (저장 없음)",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "<TextField data-testid=\"sim-salary\" variant=\"box\" label=\"본업 월 소득\" placeholder=\"0\" inputMode=\"numeric\"\n  hasError={!!err.salary} help={err.salary} />\n<Spacing size={12} />\n<TextField data-testid=\"sim-side\" variant=\"box\" label=\"부업 월 소득\" placeholder=\"0\" inputMode=\"numeric\"\n  hasError={!!err.side} help={err.side} />\n<Spacing size={12} />\n<div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>\n  {['+50만원','+100만원','+200만원'].map(l => <Chip label={l} variant=\"outlined\" onClick={() => addSide(l)} />)}\n</div>\n<Spacing size={12} />\n<ListRow contents={<ListRow.Texts type=\"1RowTypeA\" top=\"사업자등록 있음\" />}\n  right={<Switch data-testid=\"sim-biz-switch\" checked={simBiz} onChange={toggleBiz} />} />\n<Spacing size={24} />\n<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>\n  {[base, sim].map((r, i) => <Card data-testid=\"compare-card\">\n    <Paragraph.Text typography=\"t6\" color=\"secondary\">{i===0 ? '현재' : '시뮬레이션'}</Paragraph.Text>\n    <Spacing size={8} /><Badge>{statusLabel}</Badge><Spacing size={8} />\n    <Paragraph.Text typography=\"t3\">{`연 ${formatWon(r.totalAnnual)}`}</Paragraph.Text>\n    <Spacing size={4} />\n    <Paragraph.Text typography=\"t7\" color=\"secondary\">\n      {r.status==='DROP' ? `월 예상 보험료 ${formatWon(r.premium.totalMonthly)}` : '보험료 0원 (피부양자 유지)'}</Paragraph.Text>\n  </Card>)}\n</div>\n<Spacing size={16} />\n<Paragraph.Text data-testid=\"max-safe-side\" typography=\"t5\">부업은 월 416,666원까지 피부양자 유지가 가능해요</Paragraph.Text>\n<Spacing size={8} />\n<Paragraph.Text data-testid=\"net-gain-value\" typography=\"t6\" color=\"secondary\">{netGainText}</Paragraph.Text>\n<Spacing size={24} />\n{AD_ID && <div data-testid=\"simulate-ad-slot\"><AdSlot adGroupId={import.meta.env.VITE_TOSS_AD_GROUP_ID} /></div>}\n<Spacing size={32} />×3   // FloatingTabBar 회피\n\n(카드 부분은 0015의 CompareCard 컴포넌트로 렌더. 페이지 전체는 ScreenScaffold + Top title '시뮬레이션'으로 감쌈)\n\n### States\n- Loading: 없음.\n- Empty(2026년 기록 0건): 상단에 안내 문구를 보여 줍니다. 입력 필드 2개는 비워 두고(placeholder \"0\"), 현재 카드는 \"안전\"·\"연 0원\"으로 표시합니다.\n- Error: 상한을 넘으면 TextField에 hasError와 help \"월 소득은 10억원 이하로 입력해주세요\"를 띄웁니다. 결과 카드와 문구는 lastValid ref에 저장해 둔 마지막 유효값으로 계속 계산합니다.\n\n### Interactions\n- 숫자 입력: 키를 누를 때마다 숫자만 남기고 콤마를 붙인 뒤 곧바로 다시 계산합니다. 제출 버튼은 없습니다.\n- Chip 탭: haptic tickWeak. 현재 sim-side 값에 500,000 / 1,000,000 / 2,000,000을 더합니다. 예: 200,000 → 700,000 → 2,700,000.\n- Switch 전환: haptic tickWeak. 화면 상태만 바꾸고 saveProfile은 호출하지 않습니다.\n- max-safe-side 문구: 사업자 등록 \"사업자등록 시 부업 소득이 있으면 자격을 잃어요\" / 여유 0원이고 미등록 \"본업·기타 소득만으로 기준을 넘어요\" / 나머지 \"부업은 월 {n}원까지 피부양자 유지가 가능해요\"\n- net-gain-value 문구: 부업 소득이 현재값 이하 \"부업 소득을 늘려 비교해보세요\" / netGain ≥ 0 \"부업으로 연 {Δ}원 더 벌면 보험료 연 {P}원을 내고 실제로 {netGain}원이 늘어요\" / netGain < 0 \"부업으로 연 {Δ}원 더 벌어도 보험료 연 {P}원 때문에 오히려 연 {|netGain|}원 손해예요\" ({x}원 자리에는 formatWon(x) 사용, '원' 중복 금지)\n- 좁은 화면(360px): t3 금액은 줄바꿈 허용(wordBreak: 'keep-all' wrapper), 글자 크기 축소 금지."
+  },
+  {
+    "id": "0017",
+    "title": "SettingsPage 부품 — 계산 기준 BottomSheet",
+    "epic": "Epic 3. Core UI Pages",
+    "task": {
+      "description": "[부가] src/components/settings/RulesSheet.tsx를 만든다. props는 {open, onClose}다. buildRuleDescriptions(RULES)가 반환하는 6개 문구를 ListRow 6행으로 보여주는 BottomSheet로, 아래에 DISCLAIMER_TEXT를 붙인다. BottomSheet의 open/onClose props 이름은 .d.ts에서 확인한다. 숫자 문구를 하드코딩하지 않는다.",
+      "acceptance_criteria": [
+        "open=true면 ListRow 텍스트 6개가 buildRuleDescriptions(RULES) 배열과 순서까지 같다",
+        "RULES를 healthRateBp 800으로 바꾼 객체를 넘기면(선택 prop rules) '8.00%'가 들어간 문구가 보인다",
+        "open=false면 규칙 문구 0개가 DOM에 보인다",
+        "BottomSheet onClose 트리거 시 onClose 1회 호출"
+      ]
+    },
+    "covers": [
+      "F7-AC4"
+    ],
+    "files": [
+      "src/components/settings/RulesSheet.tsx",
+      "src/components/settings/__tests__/RulesSheet.test.tsx"
+    ],
+    "definition_of_done": [
+      "RulesSheet.test.tsx 통과",
+      "소스에 '2,000'·'500'·'7.19' 리터럴 0건",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [],
+    "db_schema": "",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "<BottomSheet /* open/onClose: .d.ts 확인 */>\n  {ruleLines(RULES).map(t => <ListRow contents={<ListRow.Texts type=\"1RowTypeA\" top={t} />} />)}   // 6행\n</BottomSheet>\n(ruleLines = buildRuleDescriptions. 목록 아래 Spacing 16 + Paragraph.Text typography=\"t7\" color=\"tertiary\" {DISCLAIMER_TEXT}, 헤더 제목 '계산 기준')"
+  },
+  {
+    "id": "0018",
+    "title": "SettingsPage — 사업자 행·리마인더·전체 삭제·면책 (/settings)",
+    "epic": "Epic 3. Core UI Pages",
+    "task": {
+      "description": "[부가] src/pages/Settings.tsx를 Blueprint대로 만든다. 사업자등록 여부 행(있음/없음/미설정, 탭하면 /profile edit), 계산 기준 행(RulesSheet 열기), 월간 입력 리마인더 Switch(즉시 저장), 모든 데이터 삭제 AlertDialog('닫기'/'삭제'), 면책 문구, 결과 Toast, 탭바 여백을 넣는다.",
+      "acceptance_criteria": [
+        "profile이 없으면 row-biz 오른쪽에 '미설정'이, hasBusinessRegistration true면 '있음'이 보인다. row-biz를 클릭하면 pathname '/profile', state {mode:'edit'}이다",
+        "reminder-switch를 끄면 JSON.parse(localStorage['ddg:settings:v1']).reminderEnabled === false이고, 다시 마운트해도 Switch가 꺼져 있다",
+        "row-rules를 클릭하면 계산 기준 문구 6행이 보인다",
+        "row-reset → '닫기'를 누르면 ddg:records:v1이 그대로 남는다. row-reset → '삭제'를 누르면 ddg:* 4개 키가 모두 null이고 row-biz는 '미설정', 삭제 완료 Toast가 보인다",
+        "removeItem이 throw하면 삭제 실패 Toast가 보이고 records는 메모리 상태 그대로다. 화면에 DISCLAIMER_TEXT 전문이 보인다"
+      ]
+    },
+    "covers": [
+      "F7",
+      "F7-AC3",
+      "F7-AC4",
+      "F7-AC8"
+    ],
+    "files": [
+      "src/pages/Settings.tsx",
+      "src/pages/__tests__/Settings.test.tsx"
+    ],
+    "definition_of_done": [
+      "Settings.test.tsx 통과",
+      "AlertDialog 좌측 버튼 '닫기', '취소' 0건",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [
+      "0017"
+    ],
+    "db_schema": "AppSettings → 'ddg:settings:v1' (saveSettings) / clearAllData로 ddg:* 4개 키 삭제",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "<Top title={<Top.TitleParagraph>설정</Top.TitleParagraph>} />\n<Spacing size={16} />\n<Paragraph.Text typography=\"t6\" color=\"secondary\">판정 정보</Paragraph.Text>\n<Spacing size={8} />\n<ListRow data-testid=\"row-biz\" onClick={goProfileEdit}\n  contents={<ListRow.Texts type=\"1RowTypeA\" top=\"사업자등록 여부\" />}\n  right={<Paragraph.Text typography=\"t6\" color=\"secondary\">{있음|없음|미설정}</Paragraph.Text>} />\n<ListRow data-testid=\"row-rules\" onClick={openRules}\n  contents={<ListRow.Texts type=\"1RowTypeA\" top=\"계산 기준 보기\" />} />\n<Spacing size={24} />\n<Paragraph.Text typography=\"t6\" color=\"secondary\">알림</Paragraph.Text>\n<Spacing size={8} />\n<ListRow contents={<ListRow.Texts type=\"2RowTypeA\" top=\"월간 입력 리마인더\" bottom=\"지난달 소득을 입력하지 않으면 홈에서 알려드려요\" />}\n  right={<Switch data-testid=\"reminder-switch\" checked={reminder} onChange={toggleReminder} />} />\n<Spacing size={24} />\n<Paragraph.Text typography=\"t6\" color=\"secondary\">데이터</Paragraph.Text>\n<Spacing size={8} />\n<ListRow data-testid=\"row-reset\" onClick={openReset}\n  contents={<ListRow.Texts type=\"1RowTypeA\" top=\"모든 데이터 삭제\" />} />\n<Spacing size={24} />\n<Paragraph.Text typography=\"t7\" color=\"tertiary\">{DISCLAIMER_TEXT}</Paragraph.Text>\n<Spacing size={32} />×3   // FloatingTabBar 회피\n<BottomSheet /* open/onClose: .d.ts 확인 */>\n  {ruleLines(RULES).map(t => <ListRow contents={<ListRow.Texts type=\"1RowTypeA\" top={t} />} />)}   // 6행\n</BottomSheet>\n<AlertDialog open={resetOpen} title=\"모든 데이터를 삭제할까요?\"\n  description=\"입력한 소득 기록과 설정이 모두 지워지고 되돌릴 수 없어요\" onClose={closeReset}\n  alertButton={<><AlertDialog.AlertButton onClick={closeReset}>닫기</AlertDialog.AlertButton>\n    <AlertDialog.AlertButton onClick={confirmReset}>삭제</AlertDialog.AlertButton></>} />\n<Toast open={toastOpen} position=\"top\" onClose={…} />\n\n(ScreenScaffold로 감쌈. BottomSheet 부분은 0017 RulesSheet 사용. Switch·행 탭 haptic tickWeak)\n\n### States\n- Loading: 없음.\n- Empty: 프로필이 없으면 row-biz 오른쪽에 \"미설정\"을 표시합니다. 리마인더 Switch는 기본값 on입니다.\n- Error: 저장·삭제 실패 시 Toast(position=\"top\") '저장하지 못했어요' / '삭제하지 못했어요'. 성공 시 '모든 데이터를 삭제했어요'"
+  },
+  {
+    "id": "0019",
+    "title": "라우팅 연결 + 탭바 레이아웃 + Provider 배선 (App.tsx)",
+    "epic": "4",
+    "task": {
+      "description": "src/App.tsx를 이 패킷만 소유한다. AppDataProvider로 감싸고 SPEC §7의 7개 라우트와 catch-all(Navigate '/')을 정의한다. src/components/TabLayout.tsx는 Outlet과 템플릿 FloatingTabBar(홈/기록/시뮬레이션/설정)로 탭 화면을 감싼다. /profile, /record, /report는 레이아웃 밖에 둔다. main.tsx는 수정하지 않는다(Router 중복 금지). 테스트용으로 AppRoutes를 export한다.",
+      "acceptance_criteria": [
+        "MemoryRouter initialEntries ['/unknown']에서 AppRoutes를 렌더하면 pathname은 '/'다(profile이 있을 때)",
+        "profile이 있을 때 '/', '/history', '/simulate', '/settings'에서는 FloatingTabBar 탭 텍스트 '홈', '기록', '시뮬레이션', '설정'이 보이고, '/profile', '/record', '/report'에서는 0개다",
+        "탭바의 '설정'을 클릭하면 pathname '/settings'이고 활성 탭이 '설정'이다",
+        "git diff 기준 src/main.tsx 변경 0줄이고, BrowserRouter/MemoryRouter를 main.tsx와 App.tsx 양쪽에서 중복 생성하지 않는다(main.tsx의 기존 구조를 먼저 확인)"
+      ]
+    },
+    "covers": [
+      "F8",
+      "F3",
+      "F5",
+      "F6",
+      "F7"
+    ],
+    "files": [
+      "src/App.tsx",
+      "src/components/TabLayout.tsx",
+      "src/__tests__/routes.test.tsx"
+    ],
+    "definition_of_done": [
+      "routes.test.tsx 통과",
+      "npm run build 성공",
+      "npx tsc --noEmit 통과"
+    ],
+    "depends_on": [
+      "0007",
+      "0010",
+      "0012",
+      "0013"
+    ],
+    "db_schema": "",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "TabLayout: <Outlet /> + 템플릿 FloatingTabBar(items: [{label:'홈', path:'/'}, {label:'기록', path:'/history'}, {label:'시뮬레이션', path:'/simulate'}, {label:'설정', path:'/settings'}], 활성 탭 컬러 틴트 — 실제 props는 템플릿 소스 확인). 하단 fixed 요소는 템플릿의 safe-area 처리를 따르고, 새로 만들면 paddingBottom: 'calc(Npx + env(safe-area-inset-bottom))'. 라우트: '/'·'/history'·'/simulate'·'/settings'는 TabLayout 안, '/profile'·'/record'·'/report'는 밖, '*' → <Navigate to=\"/\" replace />"
+  },
+  {
+    "id": "0020",
+    "title": "정적 검수 스크립트 + 화면 간 흐름·콘솔 에러 테스트",
+    "epic": "Epic 4. Integration + Polish",
+    "task": {
+      "description": "scripts/check-compliance.mjs로 검수 반려 패턴을 정적으로 검사하고, package.json에 'check:compliance' 스크립트를 추가한다. src/__tests__/flows.test.tsx에서 온보딩 → 소득 입력 → 홈 진단 → 리포트 열람 → 시뮬레이션 흐름과 전 라우트 순회 console.error 0회를 검증한다. App.tsx와 main.tsx는 건드리지 않는다. 템플릿 래퍼 정의 파일은 검사에서 뺀다.",
+      "acceptance_criteria": [
+        "check-compliance는 src/pages와 src/components(템플릿 AdSlot·TossRewardAd·TossPurchase 정의 파일 제외)에서 다음 중 하나라도 나오면 exit 1로 끝나고 파일:라인을 출력한다: HEX 색상(#[0-9a-fA-F]{3,8}), '@mui'·'antd'·'@chakra-ui'·'shadcn' import, 'TossPurchase'·'IAP.' 사용, 'grantPromotionReward', '취소'·'설치하세요'·'다운로드' 문자열. 현재 코드베이스에서는 exit 0이다",
+        "임시 파일에 color: '#ff0000'을 넣고 실행하면 exit 1이고 해당 경로가 출력된다(테스트 또는 수동 확인 기록)",
+        "flows 테스트: 빈 저장소에서 '/'로 진입하면 '/profile'로 이동한다 → '없음'을 저장한다 → 빈 상태 CTA로 '/record'에 가서 본업 1,700,000을 저장한다 → 홈에 '8월 소득을 저장했어요' Toast와 '안전'이 보인다",
+        "flows 테스트: 7개 라우트를 순서대로 렌더하는 동안 console.error spy 호출이 0회다. unlock '2026-09' 상태에서 '/report'의 '시뮬레이션 해보기'를 누르면 '/simulate'에 data-testid='compare-card'가 2개 보인다"
+      ]
+    },
+    "covers": [
+      "F8",
+      "F8-AC8",
+      "F2",
+      "F3",
+      "F4"
+    ],
+    "files": [
+      "scripts/check-compliance.mjs",
+      "package.json",
+      "src/__tests__/flows.test.tsx"
+    ],
+    "definition_of_done": [
+      "npm run check:compliance exit 0",
+      "flows.test.tsx 통과(AdSlot·TossRewardAd·haptic mock, vi.setSystemTime 2026-09-14)",
+      "npm run build 성공, src/App.tsx·src/main.tsx 변경 0줄"
+    ],
+    "depends_on": [
+      "0019"
+    ],
+    "db_schema": "",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "UI 파일은 새로 만들지 않음. 검사 대상 기준: 탭 화면 4개(Home/History/Simulate/Settings)는 마지막에 Spacing size={32}가 3개 있어야 한다(FloatingTabBar 회피). 없으면 스크립트가 경고로 출력하되 exit 코드에는 반영하지 않는다. AdSlot은 콘텐츠 사이나 결과 뒤에만 두고, 화면 최상단에 두면 경고로 출력한다"
+  }
+]
