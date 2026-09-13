@@ -73,7 +73,7 @@ describe("AC-3: Storage quota & error handling", () => {
 
   it("AC-3.1: saveSettings returns {ok:false, error:'STORAGE_FULL'} on QuotaExceededError", async () => {
     const originalSetItem = localStorage.setItem;
-    vi.spyOn(localStorage, "setItem").mockImplementationOnce(() => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
       const err = new DOMException("QuotaExceeded", "QuotaExceededError");
       throw err;
     });
@@ -84,10 +84,12 @@ describe("AC-3: Storage quota & error handling", () => {
     expect(result).toEqual({ ok: false, error: "STORAGE_FULL" });
   });
 
-  it("AC-3.2: saveSettings returns {ok:false, error:'STORAGE_FULL'} on DOMException with code 22", async () => {
-    vi.spyOn(localStorage, "setItem").mockImplementationOnce(() => {
-      const err = new DOMException("QuotaExceeded", "QuotaExceededError");
-      (err as any).code = 22;
+  it("AC-3.2: saveSettings returns {ok:false, error:'STORAGE_FULL'} on legacy exception with code 22", async () => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
+      // DOMException.code is a getter-only property and cannot be reassigned — legacy
+      // browsers signal quota errors via a plain exception carrying a numeric `code` instead.
+      const err = new Error("QuotaExceeded") as Error & { code: number };
+      err.code = 22;
       throw err;
     });
 
@@ -98,7 +100,7 @@ describe("AC-3: Storage quota & error handling", () => {
   });
 
   it("AC-3.3: saveSettings returns {ok:false, error:'STORAGE_UNAVAILABLE'} on general Error", async () => {
-    vi.spyOn(localStorage, "setItem").mockImplementationOnce(() => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
       throw new Error("Access denied");
     });
 
@@ -142,8 +144,14 @@ describe("AC-4: Timestamp preservation on update", () => {
     const afterSecondSave = getProfile();
     expect(afterSecondSave).not.toBeNull();
     expect(afterSecondSave!.createdAt).toBe(firstCreatedAt);
-    expect(afterSecondSave!.updatedAt).toBeGreaterThanOrEqual(firstUpdatedAt);
-    expect(afterSecondSave!.updatedAt).toBeGreaterThan(firstCreatedAt);
+    // createdAt/updatedAt are ISO 8601 strings (per shared UserProfile contract, packet 0001) —
+    // compare as timestamps rather than via toBeGreaterThan(OrEqual), which requires number/bigint.
+    expect(new Date(afterSecondSave!.updatedAt).getTime()).toBeGreaterThanOrEqual(
+      new Date(firstUpdatedAt).getTime()
+    );
+    expect(new Date(afterSecondSave!.updatedAt).getTime()).toBeGreaterThan(
+      new Date(firstCreatedAt).getTime()
+    );
   });
 });
 
@@ -197,9 +205,12 @@ describe("safeStorage core functions", () => {
     const { readJson } = await import("@/storage/safeStorage");
     localStorage.setItem("test:key", JSON.stringify({ count: 5 }));
 
-    const result = readJson("test:key", (v) => v && typeof v.count === "number", {
-      count: 0,
-    });
+    const result = readJson(
+      "test:key",
+      (v: unknown): v is { count: number } =>
+        typeof v === "object" && v !== null && typeof (v as { count: unknown }).count === "number",
+      { count: 0 }
+    );
     expect(result).toEqual({ count: 5 });
   });
 
@@ -208,16 +219,21 @@ describe("safeStorage core functions", () => {
     localStorage.setItem("test:key", JSON.stringify({ invalid: true }));
 
     const fallback = { count: 0 };
-    const result = readJson("test:key", (v) => v && typeof v.count === "number", fallback);
+    const result = readJson(
+      "test:key",
+      (v: unknown): v is { count: number } =>
+        typeof v === "object" && v !== null && typeof (v as { count: unknown }).count === "number",
+      fallback
+    );
     expect(result).toBe(fallback);
   });
 
-  it("writeJson returns {ok:true} on success, sets item exactly once", async () => {
+  it("writeJson returns {ok:true, data:null} on success, sets item exactly once", async () => {
     const { writeJson } = await import("@/storage/safeStorage");
-    const setItemSpy = vi.spyOn(localStorage, "setItem");
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
 
     const result = writeJson("test:key", { count: 10 });
-    expect(result).toEqual({ ok: true });
+    expect(result).toEqual({ ok: true, data: null });
     expect(setItemSpy).toHaveBeenCalledTimes(1);
     expect(setItemSpy).toHaveBeenCalledWith("test:key", JSON.stringify({ count: 10 }));
   });
