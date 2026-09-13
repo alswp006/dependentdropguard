@@ -130,7 +130,7 @@ describe("packet-0002: 판정 규칙 상수 + 표시 포맷 유틸", () => {
 
     it("AC4-6: formatAmountInput should remove multiple non-digit chars", () => {
       const result = formatAmountInput("1@2#3$4");
-      expect(result).toBe("1234");
+      expect(result).toBe("1,234");
     });
 
     it("AC4-7: parseAmountInput should handle larger amounts", () => {
