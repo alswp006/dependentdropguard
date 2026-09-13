@@ -35,12 +35,14 @@ export function writeJson(key: string, value: unknown): StorageResult<null> {
   }
 }
 
-export function removeKeys(keys: string[]): void {
-  try {
-    for (const key of keys) {
+export function removeKeys(keys: string[]): StorageResult<null> {
+  let failed = false;
+  for (const key of keys) {
+    try {
       window.localStorage.removeItem(key);
+    } catch {
+      failed = true;
     }
-  } catch {
-    // no-op: storage unavailable
   }
+  return failed ? { ok: false, error: 'STORAGE_UNAVAILABLE' } : { ok: true, data: null };
 }
