@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { mockTds, mockAppsInToss } from "@/__tests__/__helpers__/mocks";
 import type { UserProfile } from "@/lib/types";
@@ -41,6 +41,12 @@ async function renderAppRoutes(initialPath: string) {
   );
 }
 
+// 하단 FloatingTabBar(nav[aria-label="메인 네비게이션"])의 탭만 센다 — 기록 화면은 자체 연도 Tab(role=tab)도 가진다.
+function mainTabs() {
+  const nav = screen.queryByRole("tablist", { name: "메인 네비게이션" });
+  return nav ? within(nav).getAllByRole("tab") : [];
+}
+
 const TAB_ROUTES = ["/", "/history", "/simulate", "/settings"];
 const TAB_LABELS = ["홈", "기록", "시뮬레이션", "설정"];
 const NO_TAB_ROUTES = ["/profile", "/record", "/report"];
@@ -54,24 +60,27 @@ describe("라우팅 연결 + 탭바 레이아웃 + Provider 배선 (App.tsx)", (
     await renderAppRoutes("/unknown");
     expect(screen.getByTestId("location-display").textContent).toBe("/");
     // catch-all이 홈으로 보냈으므로 탭바(홈 탭 포함)가 보여야 한다.
-    expect(screen.getAllByRole("tab")).toHaveLength(4);
+    expect(mainTabs()).toHaveLength(4);
   });
 
   it.each(TAB_ROUTES)("AC-2[P0]: %s 에서는 탭바 4개(홈/기록/시뮬레이션/설정)가 보인다", async (path) => {
     await renderAppRoutes(path);
-    const tabs = screen.getAllByRole("tab");
+    const tabs = mainTabs();
     expect(tabs).toHaveLength(4);
     expect(tabs.map((t) => t.getAttribute("aria-label"))).toEqual(TAB_LABELS);
   });
 
   it.each(NO_TAB_ROUTES)("AC-2[P0]: %s 에서는 탭바가 숨겨진다(0개)", async (path) => {
     await renderAppRoutes(path);
-    expect(screen.queryAllByRole("tab")).toHaveLength(0);
+    expect(mainTabs()).toHaveLength(0);
   });
 
   it("AC-3[P0]: 탭바의 '설정'을 클릭하면 '/settings'로 이동하고 활성 탭이 '설정'이 된다", async () => {
     await renderAppRoutes("/");
-    screen.getByRole("tab", { name: "설정" }).click();
+    // react-router 7 MemoryRouter는 내비게이션을 startTransition으로 반영하므로 act로 flush한다.
+    await act(async () => {
+      screen.getByRole("tab", { name: "설정" }).click();
+    });
 
     expect(screen.getByTestId("location-display").textContent).toBe("/settings");
     const settingsTab = screen.getByRole("tab", { name: "설정" });
