@@ -14,7 +14,8 @@
     "test:visual": "playwright test",
     "test:visual:update": "playwright test --update-snapshots",
     "gate": "node scripts/finish-gate.mjs",
-    "measure:tds": "node scripts/tds-density.mjs src"
+    "measure:tds": "node scripts/tds-density.mjs src",
+    "check:compliance": "node scripts/check-compliance.mjs"
   },
   "dependencies": {
     "react": "^18.0.0",
