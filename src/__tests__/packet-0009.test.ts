@@ -3,13 +3,17 @@ import React from "react";
 import { render, screen, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { mockTds } from "@/__tests__/__helpers__/mocks";
 import { STATUS_LABEL, REASON_TEXT } from "@/domain/rules";
 
 mockTds();
 
-const SOURCE_PATH = fileURLToPath(
-  new URL("../components/record/StatusChangeDialog.tsx", import.meta.url),
+// jsdom이 전역 URL을 덮어써 `new URL(relative, import.meta.url)`이 http://localhost로
+// 풀린다 — path.resolve로 우회.
+const SOURCE_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../components/record/StatusChangeDialog.tsx",
 );
 
 // 동적 import — mockTds() 훅 이후에 로드되도록 각 테스트에서 개별 import
