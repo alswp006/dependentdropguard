@@ -1,8 +1,8 @@
 # Changelog
 
-## [0.1.0] - 2026-09-13
+## [0.1.0] - 2026-09-14
 
-19/20 packets completed.
+21/21 packets completed.
 
 ### Added
 - feat: 엔티티 타입 + RouteState 계약 정의 (packet 0001)
@@ -22,5 +22,7 @@
 - feat: SimulatePage 부품 — 현재/시뮬레이션 비교 카드 (packet 0015)
 - feat: SimulatePage — 지역가입자 전환 시뮬레이션 (/simulate) (packet 0016)
 - feat: SettingsPage 부품 — 계산 기준 BottomSheet (packet 0017)
+- feat: SettingsPage — 사업자 행·리마인더·전체 삭제·면책 (/settings) (packet 0018)
 - feat: 라우팅 연결 + 탭바 레이아웃 + Provider 배선 (App.tsx) (packet 0019)
 - feat: 정적 검수 스크립트 + 화면 간 흐름·콘솔 에러 테스트 (packet 0020)
+- feat: Make /settings build safely and back up ReportPage (0013) with tests (packet heal-1-01)
